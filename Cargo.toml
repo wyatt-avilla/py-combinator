@@ -8,5 +8,6 @@ edition = "2021"
 name = "py_combinator"
 crate-type = ["cdylib"]
 
-[dependencies]
-pyo3 = "0.24.0"
+[dependencies.pyo3]
+version = "0.24.0"
+features = ["extension-module"]
