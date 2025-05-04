@@ -3,7 +3,7 @@ requires = ["maturin>=1.8,<2.0"]
 build-backend = "maturin"
 
 [project]
-name = "py-combinator"
+name = "my_project"
 requires-python = ">=3.8"
 classifiers = [
     "Programming Language :: Rust",
@@ -11,6 +11,10 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dynamic = ["version"]
+[project.optional-dependencies]
+tests = [
+    "pytest",
+]
 [tool.maturin]
 python-source = "python"
 features = ["pyo3/extension-module"]
