@@ -1,6 +1,6 @@
 import pytest
-import my_project
+import py_combinator
 
 
 def test_sum_as_string():
-    assert my_project.sum_as_string(1, 1) == "2"
+    assert py_combinator.sum_as_string(1, 1) == "2"
