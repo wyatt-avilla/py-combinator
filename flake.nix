@@ -49,7 +49,6 @@
           ];
 
           shellHook = ''
-            export PYTHONPATH="${self}/python:$PYTHONPATH"
             export RUST_SRC_PATH="${rustToolchain}/lib/rustlib/src/rust/library"
           '';
         };
