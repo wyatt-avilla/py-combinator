@@ -1,4 +1,4 @@
-from .py_combinator import sum_as_string
+from py_combinator import _py_combinator as rs
 
 
 def no_use_import() -> None:
@@ -7,4 +7,4 @@ def no_use_import() -> None:
 
 def use_import() -> None:
     print("used import")
-    print(sum_as_string(30, 40))
+    print(rs.sum_as_string(30, 40))

@@ -17,4 +17,5 @@ tests = [
 ]
 [tool.maturin]
 python-source = "python"
+module-name = "py_combinator._py_combinator"
 features = ["pyo3/extension-module"]
