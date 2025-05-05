@@ -9,4 +9,5 @@ name = "py_combinator"
 crate-type = ["cdylib"]
 
 [dependencies]
+itertools = "0.14.0"
 pyo3 = "0.24.0"
