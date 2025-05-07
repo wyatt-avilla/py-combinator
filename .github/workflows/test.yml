@@ -61,6 +61,9 @@ jobs:
           arch: ${{ matrix.platform.target }}
           distro: ubuntu22.04
           githubToken: ${{ github.token }}
+          dockerRunArgs: |
+            --platform linux/${{ matrix.platform.target }}
+            -v ${{ github.workspace }}/dist:/dist
           install: |
             apt-get update
             apt-get install -y --no-install-recommends python3 python3-pip
