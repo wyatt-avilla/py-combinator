@@ -47,6 +47,7 @@
             pythonEnv
             pkgs.maturin
             pkgs.ruff
+            pkgs.mypy
           ];
 
           shellHook = ''

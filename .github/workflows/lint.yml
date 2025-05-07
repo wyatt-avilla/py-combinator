@@ -14,8 +14,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: nixbuild/nix-quick-install-action@v30
-      - name: Check lints
+      - name: Ruff lints
         run: nix shell nixpkgs#ruff -c ruff check
+      - name: Mypy lints
+        run:
+          nix shell nixpkgs#mypy -c find . -name "*.py" -exec mypy --strict {} +
 
   Rust:
     runs-on: ubuntu-latest
