@@ -6,7 +6,6 @@ use pyo3::{
     types::{PyFunction, PyList},
 };
 
-// TODO: generate with macro based on `SupportedIterableTypes`
 #[pyclass]
 struct AnyIterator {
     it: Box<dyn Iterator<Item = Py<PyAny>> + Send + Sync>,
