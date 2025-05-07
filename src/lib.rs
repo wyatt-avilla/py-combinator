@@ -6,10 +6,6 @@ use pyo3::{
     types::{PyFunction, PyList},
 };
 
-enum SupportedIterableTypes {
-    PyInt(pyo3::types::PyInt),
-}
-
 // TODO: generate with macro based on `SupportedIterableTypes`
 #[pyclass]
 struct AnyIterator {

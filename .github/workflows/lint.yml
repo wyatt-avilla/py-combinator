@@ -1,0 +1,29 @@
+name: Lint
+
+on:
+  workflow_call:
+
+jobs:
+  Python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: nixbuild/nix-quick-install-action@v30
+      - name: Check lints
+        run: nix shell nixpkgs#ruff -c ruff check
+
+  Rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: nixbuild/nix-quick-install-action@v30
+      - name: Check lints
+        run: nix shell nixpkgs#cargo -c cargo check
+
+  Nix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: nixbuild/nix-quick-install-action@v30
+      - name: Check lints
+        run: nix shell nixpkgs#statix -c statix check .
