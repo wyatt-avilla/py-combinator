@@ -61,3 +61,30 @@ def test_uncalled_count() -> None:
     c1.map(lambda x: x)
 
     assert c1.uncalled == 1
+
+
+def test_fold() -> None:
+    nums = [1, 2, 3]
+    it = AnyIterator(nums)
+
+    f = lambda acc, x: acc * x
+    acc = 1
+
+    libfolded = it.fold(acc, f)
+    [acc := f(acc, x) for x in nums]
+
+    assert acc == libfolded
+
+
+def test_fold_after_map() -> None:
+    nums = [1, 2, 3]
+    it = AnyIterator(nums)
+
+    f_add = lambda x: x + 1
+    f_fold = lambda acc, x: acc * x
+    acc = 1
+
+    libfolded = it.map(f_add).fold(acc, f_fold)
+    [acc := f_fold(acc, x) for x in map(f_add, nums)]
+
+    assert acc == libfolded
