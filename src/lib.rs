@@ -6,10 +6,25 @@ use pyo3::{
     types::{PyFunction, PyList},
 };
 
+type AnyIteratorT = Box<dyn Iterator<Item = Py<PyAny>> + Send + Sync>;
+
 #[pyclass]
 struct AnyIterator {
-    it: Box<dyn Iterator<Item = Py<PyAny>> + Send + Sync>,
+    it: AnyIteratorT,
     to_apply: VecDeque<Py<PyFunction>>,
+}
+
+impl AnyIterator {
+    fn apply_all(mut slf: PyRefMut<'_, Self>, py: Python<'_>) -> PyResult<AnyIteratorT> {
+        let funcs = slf.to_apply.drain(0..).collect_vec();
+        let mapped = slf
+            .it
+            .by_ref()
+            .map(|x| funcs.iter().try_fold(x, |acc, f| f.call1(py, (&acc,))))
+            .collect::<Result<Vec<_>, _>>()?;
+
+        Ok(Box::new(mapped.into_iter()))
+    }
 }
 
 #[pymethods]
@@ -32,15 +47,8 @@ impl AnyIterator {
         slf
     }
 
-    fn to_list<'a>(mut slf: PyRefMut<'a, Self>, py: Python<'a>) -> PyResult<Bound<'a, PyList>> {
-        let funcs = slf.to_apply.drain(0..).collect_vec();
-        let mapped = slf
-            .it
-            .by_ref()
-            .map(|x| funcs.iter().try_fold(x, |acc, f| f.call1(py, (&acc,))))
-            .collect::<Result<Vec<_>, _>>()?;
-
-        PyList::new(py, mapped)
+    fn to_list<'a>(slf: PyRefMut<'a, Self>, py: Python<'a>) -> PyResult<Bound<'a, PyList>> {
+        PyList::new(py, AnyIterator::apply_all(slf, py)?.collect_vec())
     }
 
     #[getter]
