@@ -38,7 +38,14 @@ impl AnyIterator {
     }
 
     fn to_list<'a>(mut slf: PyRefMut<'a, Self>, py: Python<'a>) -> PyResult<Bound<'a, PyList>> {
-        PyList::new(py, slf.it.by_ref().collect_vec())
+        let funcs = slf.to_apply.drain(0..).collect_vec();
+        let mapped = slf
+            .it
+            .by_ref()
+            .map(|x| funcs.iter().try_fold(x, |acc, f| f.call1(py, (&acc,))))
+            .collect::<Result<Vec<_>, _>>()?;
+
+        PyList::new(py, mapped)
     }
 
     #[getter]

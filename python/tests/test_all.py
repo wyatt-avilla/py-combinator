@@ -13,6 +13,18 @@ def test_map_addition() -> None:
     assert lib_mapped == native_mapped
 
 
+def test_multiple_maps() -> None:
+    nums = [1, 2, 3]
+    it = AnyIterator(nums)
+    f1 = lambda x: x + 1
+    f2 = lambda x: x * 2
+
+    lib_mapped = it.map(f1).map(f2).to_list()
+    native_mapped = list(map(f2, map(f1, nums)))
+
+    assert lib_mapped == native_mapped
+
+
 def test_list_conversion() -> None:
     nums = [1, 2, 3]
 
