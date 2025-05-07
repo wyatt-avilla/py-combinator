@@ -1,0 +1,33 @@
+name: Format
+
+on:
+  workflow_call:
+
+jobs:
+  Python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: nixbuild/nix-quick-install-action@v30
+      - name: Check Formatting
+        run: nix shell nixpkgs#ruff -c ruff format --check
+
+  Rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: nixbuild/nix-quick-install-action@v30
+      - name: Check Formatting
+        run:
+          nix shell nixpkgs#rustfmt -c find . -name "*.rs" -exec rustfmt --check
+          {} +
+
+  Nix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: nixbuild/nix-quick-install-action@v30
+      - name: Check Formatting
+        run:
+          nix shell nixpkgs#nixfmt-rfc-style -c find . -name "*.nix" -exec
+          nixfmt --strict --check {} +
