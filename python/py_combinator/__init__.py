@@ -1,9 +1,17 @@
-from py_combinator._py_combinator import *
+from py_combinator import _py_combinator as rs
+from py_combinator._py_combinator import AnyIterator
 
-from .wrappers import no_use_import
-from .wrappers import use_import
+from .wrappers import no_use_import, use_import
 
+__doc__ = rs.__doc__
 
-__doc__ = _py_combinator.__doc__
-if hasattr(_py_combinator, "__all__"):
-    __all__ = _py_combinator.__all__
+__all__ = []
+
+if hasattr(rs, "__all__"):
+    __all__ += rs.__all__
+
+__all__ += [
+    "AnyIterator",
+    "no_use_import",
+    "use_import",
+]

@@ -1,6 +1,8 @@
 import py_combinator._py_combinator as rs
 from py_combinator import AnyIterator
 
+# ruff: noqa: E731 S101
+
 
 def test_map_addition() -> None:
     nums = [1, 2, 3]

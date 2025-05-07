@@ -15,7 +15,12 @@ dynamic = ["version"]
 tests = [
     "pytest",
 ]
+
 [tool.maturin]
 python-source = "python"
 module-name = "py_combinator._py_combinator"
 features = ["pyo3/extension-module"]
+
+[tool.ruff.lint]
+select = [ "ALL" ]
+ignore = [ "D", "CPY", "T20", "E501", "COM812" ]

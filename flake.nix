@@ -46,6 +46,7 @@
             pkgs.rust-analyzer
             pythonEnv
             pkgs.maturin
+            pkgs.ruff
           ];
 
           shellHook = ''
