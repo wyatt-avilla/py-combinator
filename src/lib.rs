@@ -48,18 +48,15 @@ impl AnyIterator {
     }
 
     fn fold<'a>(
-        mut slf: PyRefMut<'a, Self>,
+        slf: PyRefMut<'a, Self>,
         py: Python<'a>,
-        seed: Bound<'_, PyAny>,
+        init: Bound<'_, PyAny>,
         f: Bound<'_, PyFunction>,
     ) -> PyResult<Py<PyAny>> {
-        let to_apply = slf.to_apply.drain(0..).collect_vec();
         let f = f.unbind();
 
-        let folded = slf.it.by_ref().try_fold(seed, |a, x| {
-            let x = to_apply.iter().try_fold(x, |a, f| f.call1(py, (&a,)))?;
-            let r = f.call1(py, (&a, x))?;
-            PyResult::Ok(r.into_bound(py))
+        let folded = AnyIterator::apply_all(slf, py)?.try_fold(init, |a, x| {
+            PyResult::Ok(f.call1(py, (&a, x))?.into_bound(py))
         })?;
 
         Ok(folded.unbind())
