@@ -6,24 +6,42 @@ use pyo3::{
     types::{PyFunction, PyList},
 };
 
-type AnyIteratorT = Box<dyn Iterator<Item = Py<PyAny>> + Send + Sync>;
+trait PyAnyDoubleEndedIter: Iterator<Item = Py<PyAny>> + DoubleEndedIterator {}
+impl<T> PyAnyDoubleEndedIter for T where T: Iterator<Item = Py<PyAny>> + DoubleEndedIterator {}
+
+type AnyIteratorT = Box<dyn PyAnyDoubleEndedIter + Send + Sync>;
 
 #[pyclass]
 struct AnyIterator {
     it: AnyIteratorT,
-    to_apply: VecDeque<Py<PyFunction>>,
+    to_apply: VecDeque<Function>,
+}
+
+enum Function {
+    Python(Py<PyFunction>),
+    Rust(fn(AnyIteratorT) -> AnyIteratorT),
 }
 
 impl AnyIterator {
     fn apply_all(mut slf: PyRefMut<'_, Self>, py: Python<'_>) -> PyResult<AnyIteratorT> {
-        let funcs = slf.to_apply.drain(0..).collect_vec();
-        let mapped = slf
-            .it
-            .by_ref()
-            .map(|x| funcs.iter().try_fold(x, |acc, f| f.call1(py, (&acc,))))
-            .collect::<Result<Vec<_>, _>>()?;
+        let funcs = slf.to_apply.drain(..).collect_vec();
+        let mut items = slf.it.by_ref().collect_vec();
 
-        Ok(Box::new(mapped.into_iter()))
+        for func in funcs {
+            match func {
+                Function::Python(f) => {
+                    items = items
+                        .into_iter()
+                        .map(|x| f.call1(py, (x,)))
+                        .collect::<Result<Vec<_>, _>>()?;
+                }
+                Function::Rust(f) => {
+                    items = f(Box::new(items.into_iter())).collect();
+                }
+            }
+        }
+
+        Ok(Box::new(items.into_iter()))
     }
 }
 
