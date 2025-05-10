@@ -61,7 +61,7 @@ impl AnyIterator {
     }
 
     fn map<'a>(mut slf: PyRefMut<'a, Self>, f: Bound<'_, PyFunction>) -> PyRefMut<'a, Self> {
-        slf.to_apply.push_back(f.unbind());
+        slf.to_apply.push_back(Function::Python(f.unbind()));
         slf
     }
 
@@ -78,6 +78,14 @@ impl AnyIterator {
         })?;
 
         Ok(folded.unbind())
+    }
+
+    fn rev(mut slf: PyRefMut<'_, Self>) -> PyRefMut<'_, Self> {
+        slf.to_apply
+            .push_back(Function::Rust(|x: AnyIteratorT| -> AnyIteratorT {
+                Box::new(x.rev())
+            }));
+        slf
     }
 
     fn to_list<'a>(slf: PyRefMut<'a, Self>, py: Python<'a>) -> PyResult<Bound<'a, PyList>> {

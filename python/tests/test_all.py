@@ -88,3 +88,25 @@ def test_fold_after_map() -> None:
     [acc := f_fold(acc, x) for x in map(f_add, nums)]
 
     assert acc == libfolded
+
+
+def test_reverse() -> None:
+    nums = [1, 2, 3]
+    it = AnyIterator(nums)
+
+    lib_reversed = it.rev().to_list()
+    native_reversed = list(reversed(nums))
+
+    assert native_reversed == lib_reversed
+
+
+def test_map_reverse() -> None:
+    nums = [1, 2, 3]
+    it = AnyIterator(nums)
+
+    f = lambda x: x + 1
+
+    lib_reversed = it.map(f).rev().to_list()
+    native_reversed = list(reversed(list(map(f, nums))))
+
+    assert native_reversed == lib_reversed
