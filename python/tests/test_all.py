@@ -1,4 +1,3 @@
-import py_combinator._py_combinator as rs
 from py_combinator import AnyIterator
 
 # ruff: noqa: E731 S101
@@ -46,7 +45,7 @@ def test_iterator_consumption() -> None:
 
 
 def test_chaining() -> None:
-    c1 = rs.AnyIterator([1, 2, 3])
+    c1 = AnyIterator([1, 2, 3])
     c2 = c1.map(lambda x: x)
     c3 = c2.map(lambda x: x)
 
@@ -54,7 +53,7 @@ def test_chaining() -> None:
 
 
 def test_uncalled_count() -> None:
-    c1 = rs.AnyIterator([1, 2, 3])
+    c1 = AnyIterator([1, 2, 3])
 
     assert c1.uncalled == 0
 
@@ -76,7 +75,7 @@ def test_fold() -> None:
     assert acc == libfolded
 
 
-def test_fold_after_map() -> None:
+def test_map_fold() -> None:
     nums = [1, 2, 3]
     it = AnyIterator(nums)
 
