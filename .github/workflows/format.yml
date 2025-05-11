@@ -24,8 +24,8 @@ jobs:
       - uses: nixbuild/nix-quick-install-action@v30
       - name: Check Formatting
         run:
-          nix shell nixpkgs#rustfmt -c find . -name "*.rs" -exec rustfmt --check
-          {} +
+          nix shell nixpkgs#rustfmt -c find . -name "*.rs" -exec rustfmt
+          --style-edition=2024 --check {} +
 
   Nix:
     runs-on: ubuntu-latest
