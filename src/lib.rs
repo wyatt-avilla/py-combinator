@@ -18,7 +18,7 @@ impl<T> PyAnyDoubleEndedIter for T where
 
 type AnyIteratorT = Box<dyn PyAnyDoubleEndedIter + Send + Sync>;
 
-#[pyclass(subclass)]
+#[pyclass]
 struct AnyIterator {
     it: AnyIteratorT,
     to_apply: VecDeque<Function>,
