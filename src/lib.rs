@@ -2,16 +2,23 @@ use std::collections::VecDeque;
 
 use itertools::Itertools;
 use pyo3::{
+    IntoPyObjectExt,
     prelude::*,
-    types::{PyFunction, PyList},
+    types::{PyFunction, PyInt, PyList, PyTuple},
 };
 
-trait PyAnyDoubleEndedIter: Iterator<Item = Py<PyAny>> + DoubleEndedIterator {}
-impl<T> PyAnyDoubleEndedIter for T where T: Iterator<Item = Py<PyAny>> + DoubleEndedIterator {}
+trait PyAnyDoubleEndedIter:
+    Iterator<Item = Py<PyAny>> + DoubleEndedIterator + ExactSizeIterator
+{
+}
+impl<T> PyAnyDoubleEndedIter for T where
+    T: Iterator<Item = Py<PyAny>> + DoubleEndedIterator + ExactSizeIterator
+{
+}
 
 type AnyIteratorT = Box<dyn PyAnyDoubleEndedIter + Send + Sync>;
 
-#[pyclass]
+#[pyclass(subclass)]
 struct AnyIterator {
     it: AnyIteratorT,
     to_apply: VecDeque<Function>,
@@ -84,6 +91,20 @@ impl AnyIterator {
         slf.to_apply
             .push_back(Function::Rust(|it: AnyIteratorT| -> AnyIteratorT {
                 Box::new(it.rev())
+            }));
+        slf
+    }
+
+    fn enumerate(mut slf: PyRefMut<'_, Self>) -> PyRefMut<'_, Self> {
+        slf.to_apply
+            .push_back(Function::Rust(|it: AnyIteratorT| -> AnyIteratorT {
+                Box::new(it.enumerate().map(|(i, v)| {
+                    Python::with_gil(|py| {
+                        let i = PyInt::new(py, i).into_py_any(py).unwrap();
+                        let tup = PyTuple::new(py, &[i, v]).unwrap().into_py_any(py).unwrap();
+                        tup
+                    })
+                }))
             }));
         slf
     }

@@ -109,3 +109,13 @@ def test_map_reverse() -> None:
     native_reversed = list(reversed(list(map(f, nums))))
 
     assert native_reversed == lib_reversed
+
+
+def test_enumerate() -> None:
+    nums = [1, 2, 3]
+    it = AnyIterator(nums)
+
+    lib_enumerate = it.enumerate().to_list()
+    native_enumerate = list(enumerate(nums))
+
+    assert lib_enumerate == native_enumerate
