@@ -82,8 +82,8 @@ impl AnyIterator {
 
     fn rev(mut slf: PyRefMut<'_, Self>) -> PyRefMut<'_, Self> {
         slf.to_apply
-            .push_back(Function::Rust(|x: AnyIteratorT| -> AnyIteratorT {
-                Box::new(x.rev())
+            .push_back(Function::Rust(|it: AnyIteratorT| -> AnyIteratorT {
+                Box::new(it.rev())
             }));
         slf
     }
