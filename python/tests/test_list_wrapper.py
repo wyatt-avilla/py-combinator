@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 from py_combinator import PyListWrapper
 
 # ruff: noqa: E731 S101
@@ -5,7 +7,7 @@ from py_combinator import PyListWrapper
 
 def test_map_addition() -> None:
     nums = [1, 2, 3]
-    it = PyListWrapper(nums)
+    it = PyListWrapper(deepcopy(nums))
     f = lambda x: x + 1
 
     lib_mapped = it.map(f).to_list()
@@ -16,7 +18,7 @@ def test_map_addition() -> None:
 
 def test_multiple_maps() -> None:
     nums = [1, 2, 3]
-    it = PyListWrapper(nums)
+    it = PyListWrapper(deepcopy(nums))
     f1 = lambda x: x + 1
     f2 = lambda x: x * 2
 
@@ -32,16 +34,6 @@ def test_list_conversion() -> None:
     it = PyListWrapper(nums)
 
     assert it.to_list() == nums
-
-
-def test_iterator_consumption() -> None:
-    nums = [1, 2, 3]
-
-    it = PyListWrapper(nums)
-
-    it.to_list()
-
-    assert len(it.to_list()) == 0
 
 
 def test_chaining() -> None:
@@ -61,6 +53,10 @@ def test_uncalled_count() -> None:
 
     assert c1.uncalled == 1
 
+    c1.to_list()
+
+    assert c1.uncalled == 0
+
 
 def test_fold() -> None:
     nums = [1, 2, 3]
@@ -77,7 +73,7 @@ def test_fold() -> None:
 
 def test_map_fold() -> None:
     nums = [1, 2, 3]
-    it = PyListWrapper(nums)
+    it = PyListWrapper(deepcopy(nums))
 
     f_add = lambda x: x + 1
     f_fold = lambda acc, x: acc * x
@@ -91,7 +87,7 @@ def test_map_fold() -> None:
 
 def test_reverse() -> None:
     nums = [1, 2, 3]
-    it = PyListWrapper(nums)
+    it = PyListWrapper(deepcopy(nums))
 
     lib_reversed = it.rev().to_list()
     native_reversed = list(reversed(nums))
@@ -101,7 +97,7 @@ def test_reverse() -> None:
 
 def test_map_reverse() -> None:
     nums = [1, 2, 3]
-    it = PyListWrapper(nums)
+    it = PyListWrapper(deepcopy(nums))
 
     f = lambda x: x + 1
 
@@ -113,7 +109,7 @@ def test_map_reverse() -> None:
 
 def test_enumerate() -> None:
     nums = [1, 2, 3]
-    it = PyListWrapper(nums)
+    it = PyListWrapper(deepcopy(nums))
 
     lib_enumerate = it.enumerate().to_list()
     native_enumerate = list(enumerate(nums))
@@ -126,3 +122,17 @@ def test_pass_by_ref_semantics() -> None:
     it = PyListWrapper(nums)
 
     assert it.to_list() is nums
+
+
+def test_enumerate_rev() -> None:
+    nums = [1, 2, 3]
+    it = PyListWrapper(deepcopy(nums))
+
+    assert it.enumerate().rev().to_list() == [(2, 3), (1, 2), (0, 1)]
+
+
+def test_rev_enumerate() -> None:
+    nums = [1, 2, 3]
+    it = PyListWrapper(deepcopy(nums))
+
+    assert it.rev().enumerate().to_list() == [(0, 3), (1, 2), (2, 1)]
