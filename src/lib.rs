@@ -1,3 +1,5 @@
+#![warn(clippy::pedantic)]
+
 mod pylist_wrapper;
 
 use pyo3::prelude::*;
