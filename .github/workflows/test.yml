@@ -20,6 +20,9 @@ jobs:
           source .venv/bin/activate
       - name: Build
         run: nix shell nixpkgs#maturin -c maturin develop
+      - name: Install library
+        run: |
+          pip install py_combinator
       - name: Pytest
         run: nix shell nixpkgs#python312Packages.pytest -c pytest
       - name: Matrix Test
