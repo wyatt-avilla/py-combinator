@@ -14,7 +14,8 @@ from py_combinator import PyListWrapper
 
 SUPPORTED_WRAPPERS = (PyListWrapper,)
 
-SupportedWrappers = Union[PyListWrapper]
+# enable lint when more wrappers are supported
+SupportedWrappers = Union[PyListWrapper]  # noqa: UP007
 
 FunctionT = Union["NumericLambda"]
 
@@ -107,7 +108,7 @@ class TestCase:
     @property
     def name(self) -> str:
         name = f"{self.wrapper.__name__}_" + "_".join(
-            tup[1].name + (f"_{tup[2].name}" if len(tup) == 3 else "")
+            tup[1].name + (f"_{tup[2].name}" if len(tup) == 3 else "")  # noqa: PLR2004
             for tup in self.chain
         )
 
@@ -184,7 +185,7 @@ def generate_matrix(depth: int) -> list[TestCase]:
 
                     sig = inspect.signature(inbuilt.fn)
                     params = sig.parameters
-                    expects_numeric = len(params) == 2
+                    expects_numeric = len(params) == 2  # noqa: PLR2004
 
                     if expects_numeric:
                         enriched_combos = [
