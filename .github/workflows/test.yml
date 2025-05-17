@@ -17,11 +17,11 @@ jobs:
       - name: Make venv
         run: |
           python -m venv .venv
-          source .venv/bin/activate
       - name: Build
         run: nix shell nixpkgs#maturin -c maturin develop
       - name: Install library
         run: |
+          source .venv/bin/activate
           pip install py_combinator
       - name: Pytest
         run: nix shell nixpkgs#python312Packages.pytest -c pytest
