@@ -59,6 +59,12 @@ class NumericLambda:
 
 
 @dataclass
+class NumericPredicate:
+    name: str
+    fn: Callable[[int | float], int | float]
+
+
+@dataclass
 class TestCaseResult:
     pass
 
@@ -71,8 +77,9 @@ class Pass(TestCaseResult):
 
 @dataclass
 class Fail(TestCaseResult):
-    expected: list[Any]
-    got: list[Any]
+    expected: Any
+    got: Any
+    error: Exception | None = None
 
     def __str__(self) -> str:
         return "FAIL"
@@ -133,11 +140,12 @@ class TestCase:
                 else:
                     lib = lib_fn.fn(lam.fn, lib)
                     native = native_fn.fn(lam.fn, native)
+            lib = lib.to_list()
+            native = list(native)
         except TypeError as e:
             return Skip(e)
-
-        lib = lib.to_list()
-        native = list(native)
+        except Exception as e:  # noqa: BLE001
+            return Fail(native, lib, e)
 
         return Pass() if lib == native else Fail(native, lib)
 
@@ -155,6 +163,10 @@ FUNCTION_METHOD_PAIRS: list[tuple[InbuiltFunction, LibraryMethod]] = [
         InbuiltFunction("enumerate", lambda it: list(enumerate(it))),
         LibraryMethod("enumerate", lambda w: w.enumerate()),
     ),
+    (
+        InbuiltFunction("filter", lambda fn, it: list(filter(fn, it))),
+        LibraryMethod("filter", lambda fn, w: w.filter(fn)),
+    ),
 ]
 
 NUMERIC_FUNCS = [
@@ -163,6 +175,13 @@ NUMERIC_FUNCS = [
     NumericLambda("negate", lambda x: -x),
     NumericLambda("square", lambda x: x**2),
     NumericLambda("abs", lambda x: abs(x)),
+]
+
+NUMERIC_PREDICATES = [
+    NumericPredicate("is_even", lambda x: x % 2 == 0),
+    NumericPredicate("is_odd", lambda x: x % 2 == 1),
+    NumericPredicate("is_positive", lambda x: x > 0),
+    NumericPredicate("is_negative", lambda x: x < 0),
 ]
 
 INT_TEST_DATA = [
@@ -191,7 +210,7 @@ def generate_matrix(depth: int) -> list[TestCase]:
                         enriched_combos = [
                             [*existing, (inbuilt, method, numeric)]
                             for existing in enriched_combos
-                            for numeric in NUMERIC_FUNCS
+                            for numeric in NUMERIC_FUNCS + NUMERIC_PREDICATES
                         ]
                     else:
                         enriched_combos = [
@@ -260,9 +279,13 @@ if __name__ == "__main__":
                 print(f"{green(str(result))} {test_case.name}")
         elif isinstance(result, Fail):
             failed_count += 1
-            if verbose:
+            if verbose or very_verbose:
                 print(f"{red(str(result))} {test_case.name}")
-            if very_verbose and very_verbose:
+            if very_verbose:
+                if result.error is not None:
+                    print(f"Error: \n{result.error}")
+
+                print(f"From: \n{test_case.initial_data}")
                 print(f"Expected: \n{result.expected}")
                 print(f"Got: \n{result.got}")
         elif isinstance(result, Skip):

@@ -4,7 +4,7 @@ use itertools::Itertools;
 use pyo3::{
     IntoPyObjectExt,
     prelude::*,
-    types::{PyFunction, PyList},
+    types::{PyBool, PyFunction, PyList},
 };
 
 #[pyclass]
@@ -16,6 +16,7 @@ pub struct PyListWrapper {
 enum Operation {
     Function(Function),
     Reverse,
+    Filter(Py<PyFunction>),
 }
 
 enum Function {
@@ -30,12 +31,11 @@ impl PyListWrapper {
     fn apply_all<'p>(mut slf: PyRefMut<'_, Self>, py: Python<'p>) -> PyResult<Bound<'p, PyList>> {
         let ops = slf.to_apply.drain(..).collect_vec();
         let items = slf.list.clone_ref(py).into_bound(py);
-        let items_len = items.len();
 
         for op in ops {
             match op {
                 Operation::Function(func) => {
-                    for i in 0..items_len {
+                    for i in 0..items.len() {
                         let item = items.get_item(i)?;
                         let new_item = match &func {
                             Function::Python(f) => f.call1(py, (item,))?,
@@ -45,6 +45,31 @@ impl PyListWrapper {
                     }
                 }
                 Operation::Reverse => items.reverse()?,
+                Operation::Filter(f) => {
+                    let mut delete_idxs: Vec<(usize, usize)> = Vec::new();
+                    for i in 0..items.len() {
+                        let item = items.get_item(i)?;
+                        let keep = f
+                            .call1(py, (item,))?
+                            .downcast_bound::<PyBool>(py)?
+                            .is_true();
+
+                        if !keep {
+                            match delete_idxs.last_mut() {
+                                Some(t) if t.1 == i - 1 => t.1 = i,
+                                _ => delete_idxs.push((i, i)),
+                            }
+                        }
+                    }
+
+                    for tup in delete_idxs.into_iter().rev() {
+                        if tup.0 == tup.1 {
+                            items.del_item(tup.0)?;
+                        } else {
+                            items.del_slice(tup.0, tup.1 + 1)?;
+                        }
+                    }
+                }
             }
         }
 
@@ -103,6 +128,11 @@ impl PyListWrapper {
         slf.to_apply
             .push_back(Operation::Function(Function::Rust(boxed_func)));
 
+        slf
+    }
+
+    fn filter<'a>(mut slf: PyRefMut<'a, Self>, f: Bound<'_, PyFunction>) -> PyRefMut<'a, Self> {
+        slf.to_apply.push_back(Operation::Filter(f.unbind()));
         slf
     }
 

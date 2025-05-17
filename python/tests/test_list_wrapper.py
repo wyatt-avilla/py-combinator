@@ -136,3 +136,39 @@ def test_rev_enumerate() -> None:
     it = PyListWrapper(deepcopy(nums))
 
     assert it.rev().enumerate().to_list() == [(0, 3), (1, 2), (2, 1)]
+
+
+def test_filter() -> None:
+    nums = [1, 2, 3, 4, 5]
+    it = PyListWrapper(deepcopy(nums))
+
+    f = lambda x: x % 2 == 0
+
+    lib_filter = it.filter(f).to_list()
+    native_filter = list(filter(f, nums))
+
+    assert lib_filter == native_filter
+
+
+def test_filter_consecutive() -> None:
+    nums = [2, 4, 6, 1, 2, 3]
+    it = PyListWrapper(deepcopy(nums))
+
+    f = lambda x: x % 2 == 0
+
+    lib_filter = it.filter(f).to_list()
+    native_filter = list(filter(f, nums))
+
+    assert lib_filter == native_filter
+
+
+def test_filter_negative_twice() -> None:
+    nums = [1, 2, 3, 4, 5]
+    it = PyListWrapper(deepcopy(nums))
+
+    f = lambda x: x < 0
+
+    lib_filter = it.filter(f).filter(f).to_list()
+    native_filter = list(filter(f, filter(f, nums)))
+
+    assert lib_filter == native_filter
