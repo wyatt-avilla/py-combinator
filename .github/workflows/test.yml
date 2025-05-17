@@ -22,3 +22,5 @@ jobs:
         run: nix shell nixpkgs#maturin -c maturin develop
       - name: Pytest
         run: nix shell nixpkgs#python312Packages.pytest -c pytest
+      - name: Matrix Test
+        run: python3 ./python/tests/test_suite_generator.py
