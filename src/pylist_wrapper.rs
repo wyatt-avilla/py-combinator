@@ -44,14 +44,7 @@ impl PyListWrapper {
                         items.set_item(i, new_item)?;
                     }
                 }
-                Operation::Reverse => {
-                    for i in 0..(items_len / 2) {
-                        let item_a = items.get_item(i)?;
-                        let item_b = items.get_item(items_len - 1 - i)?;
-                        items.set_item(i, item_b)?;
-                        items.set_item(items_len - 1 - i, item_a)?;
-                    }
-                }
+                Operation::Reverse => items.reverse()?,
             }
         }
 
