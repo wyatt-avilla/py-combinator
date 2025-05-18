@@ -121,15 +121,10 @@ impl PyListWrapper {
                         }
                     }
 
-                    for tup in delete_idxs.into_iter().rev() {
-                        if tup.0 == tup.1 {
-                            list.del_item(tup.0)?;
-                        } else {
-                            list.del_slice(tup.0, tup.1 + 1)?;
-                        }
-                    }
-
-                    Ok(())
+                    delete_idxs
+                        .into_iter()
+                        .rev()
+                        .try_for_each(|(l, r)| list.del_slice(l, r + 1))
                 })
             },
         )));
