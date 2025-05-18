@@ -69,21 +69,13 @@ impl PyListWrapper {
         slf
     }
 
-    fn fold<'a>(
-        slf: PyRefMut<'a, Self>,
-        py: Python<'a>,
-        init: Bound<'_, PyAny>,
-        f: Bound<'_, PyFunction>,
-    ) -> PyResult<Py<PyAny>> {
-        let f = f.unbind();
-
-        let folded = PyListWrapper::apply_all(slf, py)?
-            .iter()
-            .try_fold(init, |a, x| {
-                PyResult::Ok(f.call1(py, (&a, x))?.into_bound(py))
-            })?;
-
-        Ok(folded.unbind())
+    #[allow(clippy::needless_pass_by_value)] // for f
+    fn fold(slf: PyRefMut<'_, Self>, init: Py<PyAny>, f: Py<PyFunction>) -> PyResult<Py<PyAny>> {
+        Python::with_gil(|py| {
+            PyListWrapper::apply_all(slf, py)?
+                .into_iter()
+                .try_fold(init, |a, x| f.call1(py, (&a, x)))
+        })
     }
 
     fn rev(mut slf: PyRefMut<'_, Self>) -> PyRefMut<'_, Self> {
