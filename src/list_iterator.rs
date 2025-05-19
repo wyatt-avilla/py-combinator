@@ -8,7 +8,7 @@ use pyo3::{
 };
 
 #[pyclass]
-pub struct PyListWrapper {
+pub struct ListIterator {
     list: Py<PyList>,
     to_apply: VecDeque<Operation>,
 }
@@ -28,7 +28,7 @@ type ListTransformFunctionSignature = Box<dyn Fn(Bound<'_, PyList>) -> PyResult<
 type RustFunctionSignature =
     Box<dyn Fn(Python<'_>, Py<PyAny>) -> PyResult<Py<PyAny>> + Send + Sync>;
 
-impl PyListWrapper {
+impl ListIterator {
     fn apply_all<'p>(mut slf: PyRefMut<'_, Self>, py: Python<'p>) -> PyResult<Bound<'p, PyList>> {
         let ops = slf.to_apply.drain(..).collect_vec();
         let items = slf.list.clone_ref(py).into_bound(py);
@@ -54,10 +54,10 @@ impl PyListWrapper {
 }
 
 #[pymethods]
-impl PyListWrapper {
+impl ListIterator {
     #[new]
     fn py_new(list: &Bound<'_, PyList>) -> Self {
-        PyListWrapper {
+        ListIterator {
             list: list.clone().unbind(),
             to_apply: VecDeque::new(),
         }
@@ -72,7 +72,7 @@ impl PyListWrapper {
     #[allow(clippy::needless_pass_by_value)] // for f
     fn fold(slf: PyRefMut<'_, Self>, init: Py<PyAny>, f: Py<PyFunction>) -> PyResult<Py<PyAny>> {
         Python::with_gil(|py| {
-            PyListWrapper::apply_all(slf, py)?
+            ListIterator::apply_all(slf, py)?
                 .into_iter()
                 .try_fold(init, |a, x| f.call1(py, (&a, x)))
         })
@@ -132,7 +132,7 @@ impl PyListWrapper {
     }
 
     fn to_list<'a>(slf: PyRefMut<'a, Self>, py: Python<'a>) -> PyResult<Bound<'a, PyList>> {
-        PyListWrapper::apply_all(slf, py)
+        ListIterator::apply_all(slf, py)
     }
 
     #[getter]

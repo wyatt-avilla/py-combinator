@@ -1,13 +1,13 @@
 from copy import deepcopy
 
-from py_combinator import PyListWrapper
+from py_combinator import ListIterator
 
 # ruff: noqa: E731 S101
 
 
 def test_map_addition() -> None:
     nums = [1, 2, 3]
-    it = PyListWrapper(deepcopy(nums))
+    it = ListIterator(deepcopy(nums))
     f = lambda x: x + 1
 
     lib_mapped = it.map(f).to_list()
@@ -18,7 +18,7 @@ def test_map_addition() -> None:
 
 def test_multiple_maps() -> None:
     nums = [1, 2, 3]
-    it = PyListWrapper(deepcopy(nums))
+    it = ListIterator(deepcopy(nums))
     f1 = lambda x: x + 1
     f2 = lambda x: x * 2
 
@@ -31,13 +31,13 @@ def test_multiple_maps() -> None:
 def test_list_conversion() -> None:
     nums = [1, 2, 3]
 
-    it = PyListWrapper(nums)
+    it = ListIterator(nums)
 
     assert it.to_list() == nums
 
 
 def test_chaining() -> None:
-    c1 = PyListWrapper([1, 2, 3])
+    c1 = ListIterator([1, 2, 3])
     c2 = c1.map(lambda x: x)
     c3 = c2.map(lambda x: x)
 
@@ -45,7 +45,7 @@ def test_chaining() -> None:
 
 
 def test_uncalled_count() -> None:
-    c1 = PyListWrapper([1, 2, 3])
+    c1 = ListIterator([1, 2, 3])
 
     assert c1.uncalled == 0
 
@@ -60,7 +60,7 @@ def test_uncalled_count() -> None:
 
 def test_fold() -> None:
     nums = [1, 2, 3]
-    it = PyListWrapper(nums)
+    it = ListIterator(nums)
 
     f = lambda acc, x: acc * x
     acc = 1
@@ -73,7 +73,7 @@ def test_fold() -> None:
 
 def test_map_fold() -> None:
     nums = [1, 2, 3]
-    it = PyListWrapper(deepcopy(nums))
+    it = ListIterator(deepcopy(nums))
 
     f_add = lambda x: x + 1
     f_fold = lambda acc, x: acc * x
@@ -87,7 +87,7 @@ def test_map_fold() -> None:
 
 def test_reverse() -> None:
     nums = [1, 2, 3]
-    it = PyListWrapper(deepcopy(nums))
+    it = ListIterator(deepcopy(nums))
 
     lib_reversed = it.rev().to_list()
     native_reversed = list(reversed(nums))
@@ -97,7 +97,7 @@ def test_reverse() -> None:
 
 def test_map_reverse() -> None:
     nums = [1, 2, 3]
-    it = PyListWrapper(deepcopy(nums))
+    it = ListIterator(deepcopy(nums))
 
     f = lambda x: x + 1
 
@@ -109,7 +109,7 @@ def test_map_reverse() -> None:
 
 def test_enumerate() -> None:
     nums = [1, 2, 3]
-    it = PyListWrapper(deepcopy(nums))
+    it = ListIterator(deepcopy(nums))
 
     lib_enumerate = it.enumerate().to_list()
     native_enumerate = list(enumerate(nums))
@@ -119,28 +119,28 @@ def test_enumerate() -> None:
 
 def test_pass_by_ref_semantics() -> None:
     nums = [1, 2, 3]
-    it = PyListWrapper(nums)
+    it = ListIterator(nums)
 
     assert it.to_list() is nums
 
 
 def test_enumerate_rev() -> None:
     nums = [1, 2, 3]
-    it = PyListWrapper(deepcopy(nums))
+    it = ListIterator(deepcopy(nums))
 
     assert it.enumerate().rev().to_list() == [(2, 3), (1, 2), (0, 1)]
 
 
 def test_rev_enumerate() -> None:
     nums = [1, 2, 3]
-    it = PyListWrapper(deepcopy(nums))
+    it = ListIterator(deepcopy(nums))
 
     assert it.rev().enumerate().to_list() == [(0, 3), (1, 2), (2, 1)]
 
 
 def test_filter() -> None:
     nums = [1, 2, 3, 4, 5]
-    it = PyListWrapper(deepcopy(nums))
+    it = ListIterator(deepcopy(nums))
 
     f = lambda x: x % 2 == 0
 
@@ -152,7 +152,7 @@ def test_filter() -> None:
 
 def test_filter_consecutive() -> None:
     nums = [2, 4, 6, 1, 2, 3]
-    it = PyListWrapper(deepcopy(nums))
+    it = ListIterator(deepcopy(nums))
 
     f = lambda x: x % 2 == 0
 
@@ -164,7 +164,7 @@ def test_filter_consecutive() -> None:
 
 def test_filter_negative_twice() -> None:
     nums = [1, 2, 3, 4, 5]
-    it = PyListWrapper(deepcopy(nums))
+    it = ListIterator(deepcopy(nums))
 
     f = lambda x: x < 0
 

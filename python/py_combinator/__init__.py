@@ -1,5 +1,5 @@
 from py_combinator import _py_combinator as rs
-from py_combinator._py_combinator import PyListWrapper
+from py_combinator._py_combinator import ListIterator
 
 from .wrappers import no_use_import, use_import
 
@@ -11,7 +11,7 @@ if hasattr(rs, "__all__"):
     __all__ += rs.__all__
 
 __all__ += [
-    "PyListWrapper",
+    "ListIterator",
     "no_use_import",
     "use_import",
 ]

@@ -10,12 +10,12 @@ from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any, ClassVar, Union
 
-from py_combinator import PyListWrapper
+from py_combinator import ListIterator
 
-SUPPORTED_WRAPPERS = (PyListWrapper,)
+SUPPORTED_WRAPPERS = (ListIterator,)
 
 # enable lint when more wrappers are supported
-SupportedWrappers = Union[PyListWrapper]  # noqa: UP007
+SupportedWrappers = Union[ListIterator]  # noqa: UP007
 
 FunctionT = Union["NumericLambda"]
 
@@ -218,7 +218,7 @@ def generate_matrix(depth: int) -> list[TestCase]:
                         ]
 
                 matrix.extend(
-                    TestCase(data, PyListWrapper, enriched)
+                    TestCase(data, ListIterator, enriched)
                     for enriched in enriched_combos
                 )
 
