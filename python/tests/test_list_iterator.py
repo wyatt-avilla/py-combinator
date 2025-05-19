@@ -1,4 +1,5 @@
 from copy import deepcopy
+from itertools import islice
 
 from py_combinator import ListIterator
 
@@ -42,20 +43,6 @@ def test_chaining() -> None:
     c3 = c2.map(lambda x: x)
 
     assert c1 is c2 is c3
-
-
-def test_uncalled_count() -> None:
-    c1 = ListIterator([1, 2, 3])
-
-    assert c1.uncalled == 0
-
-    c1.map(lambda x: x)
-
-    assert c1.uncalled == 1
-
-    c1.to_list()
-
-    assert c1.uncalled == 0
 
 
 def test_fold() -> None:
@@ -172,3 +159,42 @@ def test_filter_negative_twice() -> None:
     native_filter = list(filter(f, filter(f, nums)))
 
     assert lib_filter == native_filter
+
+
+def test_take() -> None:
+    nums = [1, 2, 3, 4, 5]
+    lib_it = ListIterator(deepcopy(nums))
+    native_it = iter(deepcopy(nums))
+
+    lib_taken = lib_it.take(1).to_list()
+    native_taken = list(islice(native_it, 1))
+
+    assert isinstance(lib_taken, ListIterator)
+
+    assert lib_taken == native_taken
+    assert lib_it.to_list() == list(native_it)
+
+
+def test_take_2() -> None:
+    nums = [1, 2, 3, 4, 5]
+    lib_it = ListIterator(deepcopy(nums))
+    native_it = iter(deepcopy(nums))
+
+    lib_taken = lib_it.take(2).to_list()
+    native_taken = list(islice(native_it, 2))
+
+    assert lib_taken == native_taken
+    assert lib_it.to_list() == list(native_it)
+
+
+def test_map_take() -> None:
+    nums = [1, 2, 3, 4, 5]
+    lib_it = ListIterator(deepcopy(nums))
+    native_it = iter(deepcopy(nums))
+
+    f = lambda x: x + 10
+
+    lib_res = lib_it.map(f).take(3).to_list()
+    native_res = list(islice(map(f, native_it), 3))
+
+    assert lib_res == native_res

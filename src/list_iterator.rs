@@ -1,55 +1,65 @@
-use std::collections::VecDeque;
-
 use itertools::Itertools;
 use pyo3::{
-    IntoPyObjectExt,
     prelude::*,
     types::{PyBool, PyFunction, PyList},
 };
 
 #[pyclass]
 pub struct ListIterator {
+    iter: Box<dyn DoubleEndedIterator<Item = PyResult<Py<PyAny>>> + Send + Sync>,
+}
+
+struct PyListWrapper {
     list: Py<PyList>,
-    to_apply: VecDeque<Operation>,
+    start: usize,
+    end: usize,
 }
 
-enum Operation {
-    ElementTransform(Function),
-    ListTransform(ListTransformFunctionSignature),
-}
-
-enum Function {
-    Python(Py<PyFunction>),
-    Rust(RustFunctionSignature),
-}
-
-type ListTransformFunctionSignature = Box<dyn Fn(Bound<'_, PyList>) -> PyResult<()> + Send + Sync>;
-
-type RustFunctionSignature =
-    Box<dyn Fn(Python<'_>, Py<PyAny>) -> PyResult<Py<PyAny>> + Send + Sync>;
-
-impl ListIterator {
-    fn apply_all<'p>(mut slf: PyRefMut<'_, Self>, py: Python<'p>) -> PyResult<Bound<'p, PyList>> {
-        let ops = slf.to_apply.drain(..).collect_vec();
-        let items = slf.list.clone_ref(py).into_bound(py);
-
-        for op in ops {
-            match op {
-                Operation::ListTransform(f) => f(items.clone())?,
-                Operation::ElementTransform(func) => {
-                    for i in 0..items.len() {
-                        let item = items.get_item(i)?;
-                        let new_item = match &func {
-                            Function::Python(f) => f.call1(py, (item,))?,
-                            Function::Rust(f) => f(py, item.unbind())?,
-                        };
-                        items.set_item(i, new_item)?;
-                    }
-                }
-            }
+impl PyListWrapper {
+    fn new(list: &Bound<'_, PyList>) -> Self {
+        PyListWrapper {
+            list: list.clone().unbind(),
+            start: 0,
+            end: list.len(),
         }
+    }
+}
 
-        Ok(items)
+impl Iterator for PyListWrapper {
+    type Item = PyResult<Py<PyAny>>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.start < self.end {
+            Python::with_gil(|py| -> Option<PyResult<Py<PyAny>>> {
+                let item = self
+                    .list
+                    .bind(py)
+                    .get_item(self.start)
+                    .map(pyo3::Bound::unbind);
+                self.start += 1;
+                Some(item)
+            })
+        } else {
+            None
+        }
+    }
+}
+
+impl DoubleEndedIterator for PyListWrapper {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        if self.start < self.end {
+            Python::with_gil(|py| -> Option<PyResult<Py<PyAny>>> {
+                self.end -= 1;
+                let item = self
+                    .list
+                    .bind(py)
+                    .get_item(self.end)
+                    .map(pyo3::Bound::unbind);
+                Some(item)
+            })
+        } else {
+            None
+        }
     }
 }
 
@@ -58,85 +68,80 @@ impl ListIterator {
     #[new]
     fn py_new(list: &Bound<'_, PyList>) -> Self {
         ListIterator {
-            list: list.clone().unbind(),
-            to_apply: VecDeque::new(),
+            iter: Box::new(PyListWrapper::new(list)),
         }
     }
 
-    fn map<'a>(mut slf: PyRefMut<'a, Self>, f: Bound<'_, PyFunction>) -> PyRefMut<'a, Self> {
-        slf.to_apply
-            .push_back(Operation::ElementTransform(Function::Python(f.unbind())));
+    fn map(mut slf: PyRefMut<'_, Self>, f: Py<PyFunction>) -> PyRefMut<'_, Self> {
+        let replaced = std::mem::replace(&mut slf.iter, Box::new(std::iter::empty()));
+
+        slf.iter = Box::new(
+            replaced
+                .map(move |x| Python::with_gil(|py| x.and_then(|x| f.call1(py, (x.bind(py),))))),
+        );
+
         slf
     }
 
     #[allow(clippy::needless_pass_by_value)] // for f
-    fn fold(slf: PyRefMut<'_, Self>, init: Py<PyAny>, f: Py<PyFunction>) -> PyResult<Py<PyAny>> {
+    fn fold(
+        mut slf: PyRefMut<'_, Self>,
+        init: Py<PyAny>,
+        f: Py<PyFunction>,
+    ) -> PyResult<Py<PyAny>> {
         Python::with_gil(|py| {
-            ListIterator::apply_all(slf, py)?
-                .into_iter()
-                .try_fold(init, |a, x| f.call1(py, (&a, x)))
+            slf.iter
+                .by_ref()
+                .try_fold(init, |a, x| x.and_then(|x| f.call1(py, (&a, x))))
         })
     }
 
     fn rev(mut slf: PyRefMut<'_, Self>) -> PyRefMut<'_, Self> {
-        slf.to_apply.push_back(Operation::ListTransform(Box::new(
-            |list: Bound<'_, PyList>| list.reverse(),
-        )));
+        let replaced = std::mem::replace(&mut slf.iter, Box::new(std::iter::empty()));
+
+        slf.iter = Box::new(replaced.rev());
+
         slf
     }
 
+    fn take(slf: PyRefMut<'_, Self>, n: usize) -> PyResult<PyRefMut<'_, Self>> {
+        todo!()
+    }
+
     fn enumerate(mut slf: PyRefMut<'_, Self>) -> PyRefMut<'_, Self> {
-        let counter = std::sync::atomic::AtomicUsize::new(0);
+        let replaced = std::mem::replace(&mut slf.iter, Box::new(std::iter::empty()));
 
-        let func = move |py: Python<'_>, py_any: Py<PyAny>| -> PyResult<Py<PyAny>> {
-            let current = counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-            (current, py_any).into_py_any(py)
-        };
-
-        let boxed_func = Box::new(func) as RustFunctionSignature;
-
-        slf.to_apply
-            .push_back(Operation::ElementTransform(Function::Rust(boxed_func)));
+        todo!();
+        //slf.iter = Box::new(
+        //    replaced
+        //        .enumerate()
+        //        .map(move |(i, x)| Python::with_gil(|py| x.and_then(|x| (i, x).into_py_any(py)))),
+        //);
 
         slf
     }
 
     fn filter(mut slf: PyRefMut<'_, Self>, f: Py<PyFunction>) -> PyRefMut<'_, Self> {
-        slf.to_apply.push_back(Operation::ListTransform(Box::new(
-            move |list: Bound<'_, PyList>| {
-                Python::with_gil(|py| {
-                    let mut delete_idxs: Vec<(usize, usize)> = Vec::new();
-                    for i in 0..list.len() {
-                        let item = list.get_item(i)?;
-                        let keep = f
-                            .call1(py, (item,))?
-                            .downcast_bound::<PyBool>(py)?
-                            .is_true();
+        let replaced = std::mem::replace(&mut slf.iter, Box::new(std::iter::empty()));
 
-                        if !keep {
-                            match delete_idxs.last_mut() {
-                                Some(t) if t.1 == i - 1 => t.1 = i,
-                                _ => delete_idxs.push((i, i)),
-                            }
-                        }
-                    }
+        slf.iter = Box::new(replaced.filter(move |x| {
+            Python::with_gil(|py| {
+                // TODO
+                let p = x
+                    .as_ref()
+                    .map(|x| f.call1(py, (x.bind(py),)))
+                    .unwrap()
+                    .map(|x| x.downcast_bound::<PyBool>(py).unwrap().is_true())
+                    .unwrap();
 
-                    delete_idxs
-                        .into_iter()
-                        .rev()
-                        .try_for_each(|(l, r)| list.del_slice(l, r + 1))
-                })
-            },
-        )));
+                p
+            })
+        }));
+
         slf
     }
 
-    fn to_list<'a>(slf: PyRefMut<'a, Self>, py: Python<'a>) -> PyResult<Bound<'a, PyList>> {
-        ListIterator::apply_all(slf, py)
-    }
-
-    #[getter]
-    fn uncalled(&self) -> usize {
-        self.to_apply.len()
+    fn to_list<'a>(mut slf: PyRefMut<'a, Self>, py: Python<'a>) -> PyResult<Bound<'a, PyList>> {
+        PyList::new(py, slf.iter.by_ref().collect::<PyResult<Vec<_>>>()?)
     }
 }
