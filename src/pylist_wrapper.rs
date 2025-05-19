@@ -14,7 +14,7 @@ pub struct PyListWrapper {
 }
 
 enum Operation {
-    Function(Function),
+    ElementTransform(Function),
     ListTransform(ListTransformFunctionSignature),
 }
 
@@ -36,7 +36,7 @@ impl PyListWrapper {
         for op in ops {
             match op {
                 Operation::ListTransform(f) => f(items.clone())?,
-                Operation::Function(func) => {
+                Operation::ElementTransform(func) => {
                     for i in 0..items.len() {
                         let item = items.get_item(i)?;
                         let new_item = match &func {
@@ -65,7 +65,7 @@ impl PyListWrapper {
 
     fn map<'a>(mut slf: PyRefMut<'a, Self>, f: Bound<'_, PyFunction>) -> PyRefMut<'a, Self> {
         slf.to_apply
-            .push_back(Operation::Function(Function::Python(f.unbind())));
+            .push_back(Operation::ElementTransform(Function::Python(f.unbind())));
         slf
     }
 
@@ -96,7 +96,7 @@ impl PyListWrapper {
         let boxed_func = Box::new(func) as RustFunctionSignature;
 
         slf.to_apply
-            .push_back(Operation::Function(Function::Rust(boxed_func)));
+            .push_back(Operation::ElementTransform(Function::Rust(boxed_func)));
 
         slf
     }
