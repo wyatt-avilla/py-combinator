@@ -1,12 +1,31 @@
 use itertools::Itertools;
 use pyo3::{
+    IntoPyObjectExt,
     prelude::*,
     types::{PyBool, PyFunction, PyList},
 };
 
+trait SizedDoubleEndedIterator: Iterator + DoubleEndedIterator + ExactSizeIterator {}
+impl<T> SizedDoubleEndedIterator for T where T: Iterator + DoubleEndedIterator + ExactSizeIterator {}
+
 #[pyclass]
-pub struct ListIterator {
+pub struct PyBaseIteratorWrapper {
+    iter: Box<dyn Iterator<Item = PyResult<Py<PyAny>>> + Send + Sync>,
+}
+
+#[pyclass]
+pub struct PyDoubleEndedIteratorWrapper {
     iter: Box<dyn DoubleEndedIterator<Item = PyResult<Py<PyAny>>> + Send + Sync>,
+}
+
+#[pyclass]
+pub struct PyExactSizeIteratorWrapper {
+    iter: Box<dyn ExactSizeIterator<Item = PyResult<Py<PyAny>>> + Send + Sync>,
+}
+
+#[pyclass]
+pub struct PySizedDoubleEndedIteratorWrapper {
+    iter: Box<dyn SizedDoubleEndedIterator<Item = PyResult<Py<PyAny>>> + Send + Sync>,
 }
 
 struct PyListWrapper {
@@ -63,24 +82,34 @@ impl DoubleEndedIterator for PyListWrapper {
     }
 }
 
+impl ExactSizeIterator for PyListWrapper {
+    fn len(&self) -> usize {
+        self.end - self.start
+    }
+}
+
+#[pyclass]
+pub struct ListIterator {
+    iter: Box<dyn SizedDoubleEndedIterator<Item = PyResult<Py<PyAny>>> + Send + Sync>,
+}
+
 #[pymethods]
 impl ListIterator {
     #[new]
     fn py_new(list: &Bound<'_, PyList>) -> Self {
-        ListIterator {
+        Self {
             iter: Box::new(PyListWrapper::new(list)),
         }
     }
 
-    fn map(mut slf: PyRefMut<'_, Self>, f: Py<PyFunction>) -> PyRefMut<'_, Self> {
-        let replaced = std::mem::replace(&mut slf.iter, Box::new(std::iter::empty()));
+    fn map(mut slf: PyRefMut<'_, Self>, f: Py<PyFunction>) -> PySizedDoubleEndedIteratorWrapper {
+        let it = std::mem::replace(&mut slf.iter, Box::new(std::iter::empty()));
 
-        slf.iter = Box::new(
-            replaced
-                .map(move |x| Python::with_gil(|py| x.and_then(|x| f.call1(py, (x.bind(py),))))),
-        );
-
-        slf
+        PySizedDoubleEndedIteratorWrapper {
+            iter: Box::new(
+                it.map(move |x| Python::with_gil(|py| x.and_then(|x| f.call1(py, (x.bind(py),))))),
+            ),
+        }
     }
 
     #[allow(clippy::needless_pass_by_value)] // for f
@@ -96,49 +125,52 @@ impl ListIterator {
         })
     }
 
-    fn rev(mut slf: PyRefMut<'_, Self>) -> PyRefMut<'_, Self> {
-        let replaced = std::mem::replace(&mut slf.iter, Box::new(std::iter::empty()));
+    fn rev(mut slf: PyRefMut<'_, Self>) -> PySizedDoubleEndedIteratorWrapper {
+        let it = std::mem::replace(&mut slf.iter, Box::new(std::iter::empty()));
 
-        slf.iter = Box::new(replaced.rev());
-
-        slf
+        PySizedDoubleEndedIteratorWrapper {
+            iter: Box::new(it.rev()),
+        }
     }
 
-    fn take(slf: PyRefMut<'_, Self>, n: usize) -> PyResult<PyRefMut<'_, Self>> {
-        todo!()
+    fn take(mut slf: PyRefMut<'_, Self>, n: usize) -> Self {
+        Self {
+            iter: Box::new(slf.iter.by_ref().take(n).collect_vec().into_iter()),
+        }
     }
 
-    fn enumerate(mut slf: PyRefMut<'_, Self>) -> PyRefMut<'_, Self> {
-        let replaced = std::mem::replace(&mut slf.iter, Box::new(std::iter::empty()));
+    fn enumerate(mut slf: PyRefMut<'_, Self>) -> PySizedDoubleEndedIteratorWrapper {
+        let it = std::mem::replace(&mut slf.iter, Box::new(std::iter::empty()));
 
-        todo!();
-        //slf.iter = Box::new(
-        //    replaced
-        //        .enumerate()
-        //        .map(move |(i, x)| Python::with_gil(|py| x.and_then(|x| (i, x).into_py_any(py)))),
-        //);
-
-        slf
+        PySizedDoubleEndedIteratorWrapper {
+            iter: Box::new(
+                it.enumerate().map(move |(i, x)| {
+                    Python::with_gil(|py| x.and_then(|x| (i, x).into_py_any(py)))
+                }),
+            ),
+        }
     }
 
-    fn filter(mut slf: PyRefMut<'_, Self>, f: Py<PyFunction>) -> PyRefMut<'_, Self> {
-        let replaced = std::mem::replace(&mut slf.iter, Box::new(std::iter::empty()));
+    fn filter(mut slf: PyRefMut<'_, Self>, f: Py<PyFunction>) -> PyDoubleEndedIteratorWrapper {
+        let it = std::mem::replace(&mut slf.iter, Box::new(std::iter::empty()));
 
-        slf.iter = Box::new(replaced.filter(move |x| {
-            Python::with_gil(|py| {
-                // TODO
-                let p = x
-                    .as_ref()
-                    .map(|x| f.call1(py, (x.bind(py),)))
-                    .unwrap()
-                    .map(|x| x.downcast_bound::<PyBool>(py).unwrap().is_true())
-                    .unwrap();
+        let bad_predicate = "exception in filter predicate";
 
-                p
-            })
-        }));
+        PyDoubleEndedIteratorWrapper {
+            iter: Box::new(it.filter(move |x| {
+                Python::with_gil(|py| {
+                    let p = x
+                        .as_ref()
+                        .map(|x| f.call1(py, (x.bind(py),)))
+                        .expect(bad_predicate)
+                        .map(|x| x.is_truthy(py))
+                        .and_then(|x| x)
+                        .expect(bad_predicate);
 
-        slf
+                    p
+                })
+            })),
+        }
     }
 
     fn to_list<'a>(mut slf: PyRefMut<'a, Self>, py: Python<'a>) -> PyResult<Bound<'a, PyList>> {
