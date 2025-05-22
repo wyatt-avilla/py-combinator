@@ -1,6 +1,6 @@
 use itertools::Itertools;
 use pyo3::{
-    IntoPyObjectExt,
+    IntoPyObjectExt, PyClass,
     prelude::*,
     types::{PyBool, PyFunction, PyList},
 };
@@ -8,9 +8,38 @@ use pyo3::{
 trait SizedDoubleEndedIterator: Iterator + DoubleEndedIterator + ExactSizeIterator {}
 impl<T> SizedDoubleEndedIterator for T where T: Iterator + DoubleEndedIterator + ExactSizeIterator {}
 
+impl<T> PyBaseIterator for T where T: Iterator<Item = PyResult<Py<PyAny>>> + Send + Sync {}
+trait PyBaseIterator: Iterator<Item = PyResult<Py<PyAny>>> + Send + Sync {
+    fn to_list(&mut self) -> PyResult<Py<PyList>> {
+        let v = self.collect::<PyResult<Vec<_>>>()?;
+        Python::with_gil(|py| Ok(PyList::new(py, v)?.unbind()))
+    }
+
+    fn filter(&mut self, f: Py<PyFunction>) -> Box<dyn PyBaseIterator + '_> {
+        let bad_predicate = "exception in filter predicate";
+
+        Box::new(std::iter::Iterator::filter(self, move |x| {
+            Python::with_gil(|py| {
+                x.as_ref()
+                    .map(|x| f.call1(py, (x.bind(py),)))
+                    .expect(bad_predicate)
+                    .map(|x| x.is_truthy(py))
+                    .and_then(|x| x)
+                    .expect(bad_predicate)
+            })
+        }))
+    }
+}
+
 #[pyclass]
 pub struct PyBaseIteratorWrapper {
-    iter: Box<dyn Iterator<Item = PyResult<Py<PyAny>>> + Send + Sync>,
+    iter: Box<dyn PyBaseIterator>,
+}
+
+impl PyBaseIteratorWrapper {
+    fn take_inner(&mut self) -> Box<dyn PyBaseIterator> {
+        std::mem::replace(&mut self.iter, Box::new(std::iter::empty()))
+    }
 }
 
 #[pyclass]
@@ -173,7 +202,7 @@ impl ListIterator {
         }
     }
 
-    fn to_list<'a>(mut slf: PyRefMut<'a, Self>, py: Python<'a>) -> PyResult<Bound<'a, PyList>> {
-        PyList::new(py, slf.iter.by_ref().collect::<PyResult<Vec<_>>>()?)
+    fn to_list(&mut self) -> PyResult<Py<PyList>> {
+        PyBaseIterator::to_list(&mut self.iter)
     }
 }
