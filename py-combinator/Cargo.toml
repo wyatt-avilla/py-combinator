@@ -1,0 +1,13 @@
+[package]
+name = "py_combinator"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "py_combinator"
+crate-type = ["cdylib"]
+
+[dependencies]
+macros = { path = "../macros" }
+itertools = "0.14.0"
+pyo3 = "0.24.0"

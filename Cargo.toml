@@ -1,13 +1,5 @@
-[package]
-name = "py_combinator"
-version = "0.1.0"
-edition = "2024"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-[lib]
-name = "py_combinator"
-crate-type = ["cdylib"]
-
-[dependencies]
-itertools = "0.14.0"
-pyo3 = "0.24.0"
+[workspace]
+members = [
+    "py-combinator",
+    "macros"
+]
