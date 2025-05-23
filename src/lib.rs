@@ -1,5 +1,8 @@
 #![warn(clippy::pedantic)]
 
+mod base_iterator;
+mod double_ended_iterator;
+mod exact_size_iterator;
 mod list_iterator;
 
 use pyo3::prelude::*;
