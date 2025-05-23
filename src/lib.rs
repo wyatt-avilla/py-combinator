@@ -6,15 +6,13 @@ mod exact_size_iterator;
 mod list_iterator;
 mod sized_double_ended_iterator;
 
-use std::any::{Any, TypeId};
-
 use pyo3::{IntoPyObjectExt, exceptions::PyTypeError, prelude::*, types::PyList};
 
 #[pyfunction]
 fn iterator_from(iterable: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
     Python::with_gil(|py| {
-        if iterable.get_type().name()? == "list" {
-            let list_iter = list_iterator::PyListIterator::new(iterable.downcast::<PyList>()?);
+        if let Ok(list) = iterable.downcast::<PyList>() {
+            let list_iter = list_iterator::PyListIterator::new(list);
             sized_double_ended_iterator::PySizedDoubleEndedIterator::new(Box::new(list_iter))
                 .into_py_any(py)
         } else {
