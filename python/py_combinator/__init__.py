@@ -4,8 +4,6 @@ from py_combinator._py_combinator import (
 )
 from py_combinator._py_combinator import iterator_from
 
-from .wrappers import no_use_import, use_import
-
 __doc__ = rs.__doc__
 
 __all__ = []
