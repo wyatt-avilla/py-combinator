@@ -10,12 +10,12 @@ from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any, ClassVar, Union
 
-from py_combinator import PyListWrapper
+from py_combinator import SizedDoubleEndedIterator, iterator_from
 
-SUPPORTED_WRAPPERS = (PyListWrapper,)
+SUPPORTED_WRAPPERS = (SizedDoubleEndedIterator,)
 
 # enable lint when more wrappers are supported
-SupportedWrappers = Union[PyListWrapper]  # noqa: UP007
+SupportedWrappers = Union[SizedDoubleEndedIterator]  # noqa: UP007
 
 FunctionT = Union["NumericLambda"]
 
@@ -99,14 +99,13 @@ class TestCase:
     def __init__(
         self,
         initial_data: Iterable[Any],
-        wrapper: SupportedWrappers,
         chain: list[
             tuple[InbuiltFunction, LibraryMethod]
             | tuple[InbuiltFunction, LibraryMethod, NumericLambda]
         ],
     ) -> None:
         self.initial_data: Iterable[Any] = initial_data
-        self.wrapper: SupportedWrappers = wrapper
+        self.iter = iterator_from(initial_data)
         self.chain: list[
             tuple[InbuiltFunction, LibraryMethod]
             | tuple[InbuiltFunction, LibraryMethod, NumericLambda]
@@ -127,7 +126,7 @@ class TestCase:
         return f"{name}_{potential_id}"
 
     def run(self) -> TestCaseResult:
-        lib = self.wrapper(deepcopy(self.initial_data))
+        lib = self.iter
         native = deepcopy(self.initial_data)
 
         try:
@@ -217,10 +216,7 @@ def generate_matrix(depth: int) -> list[TestCase]:
                             [*existing, fn_pair] for existing in enriched_combos
                         ]
 
-                matrix.extend(
-                    TestCase(data, PyListWrapper, enriched)
-                    for enriched in enriched_combos
-                )
+                matrix.extend(TestCase(data, enriched) for enriched in enriched_combos)
 
     return matrix
 
