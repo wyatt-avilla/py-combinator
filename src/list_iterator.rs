@@ -1,50 +1,111 @@
 use itertools::Itertools;
 use pyo3::{
-    IntoPyObjectExt, PyClass,
+    IntoPyObjectExt,
     prelude::*,
-    types::{PyBool, PyFunction, PyList},
+    types::{PyFunction, PyList},
 };
 
 trait SizedDoubleEndedIterator: Iterator + DoubleEndedIterator + ExactSizeIterator {}
 impl<T> SizedDoubleEndedIterator for T where T: Iterator + DoubleEndedIterator + ExactSizeIterator {}
 
-impl<T> PyBaseIterator for T where T: Iterator<Item = PyResult<Py<PyAny>>> + Send + Sync {}
-trait PyBaseIterator: Iterator<Item = PyResult<Py<PyAny>>> + Send + Sync {
-    fn to_list(&mut self) -> PyResult<Py<PyList>> {
-        let v = self.collect::<PyResult<Vec<_>>>()?;
+type PyBaseIteratorT = Box<dyn Iterator<Item = PyResult<Py<PyAny>>> + Send + Sync>;
+#[pyclass]
+pub struct PyBaseIterator {
+    iter: PyBaseIteratorT,
+}
+
+impl PyBaseIterator {
+    fn take_inner(&mut self) -> PyBaseIteratorT {
+        std::mem::replace(&mut self.iter, Box::new(std::iter::empty()))
+    }
+
+    fn to_list<I>(iter: I) -> PyResult<Py<PyList>>
+    where
+        I: Iterator<Item = PyResult<Py<PyAny>>>,
+    {
+        let v = iter.collect::<PyResult<Vec<_>>>()?;
         Python::with_gil(|py| Ok(PyList::new(py, v)?.unbind()))
     }
 
-    fn filter(&mut self, f: Py<PyFunction>) -> Box<dyn PyBaseIterator + '_> {
+    fn filter<I>(
+        iter: I,
+        f: Py<PyFunction>,
+    ) -> std::iter::Filter<I, impl FnMut(&PyResult<Py<PyAny>>) -> bool>
+    where
+        I: Iterator<Item = PyResult<Py<PyAny>>>,
+    {
         let bad_predicate = "exception in filter predicate";
 
-        Box::new(std::iter::Iterator::filter(self, move |x| {
+        iter.filter(move |x| {
             Python::with_gil(|py| {
-                x.as_ref()
+                let p = x
+                    .as_ref()
                     .map(|x| f.call1(py, (x.bind(py),)))
                     .expect(bad_predicate)
                     .map(|x| x.is_truthy(py))
                     .and_then(|x| x)
-                    .expect(bad_predicate)
+                    .expect(bad_predicate);
+
+                p
             })
-        }))
+        })
+    }
+
+    #[allow(clippy::type_complexity)]
+    fn map<I>(
+        iter: I,
+        f: Py<PyFunction>,
+    ) -> std::iter::Map<I, impl FnMut(PyResult<Py<PyAny>>) -> PyResult<Py<PyAny>>>
+    where
+        I: Iterator<Item = PyResult<Py<PyAny>>>,
+    {
+        iter.map(move |x| Python::with_gil(|py| x.and_then(|x| f.call1(py, (x.bind(py),)))))
+    }
+
+    #[allow(clippy::needless_pass_by_value)] // for f
+    fn fold<I>(mut iter: I, init: Py<PyAny>, f: Py<PyFunction>) -> PyResult<Py<PyAny>>
+    where
+        I: Iterator<Item = PyResult<Py<PyAny>>>,
+    {
+        Python::with_gil(|py| iter.try_fold(init, |a, x| x.and_then(|x| f.call1(py, (&a, x)))))
+    }
+
+    #[allow(clippy::type_complexity)]
+    fn enumerate<I>(
+        iter: I,
+    ) -> std::iter::Map<
+        std::iter::Enumerate<I>,
+        impl FnMut((usize, Result<Py<PyAny>, PyErr>)) -> Result<Py<PyAny>, PyErr>,
+    >
+    where
+        I: Iterator<Item = PyResult<Py<PyAny>>>,
+    {
+        iter.enumerate()
+            .map(move |(i, x)| Python::with_gil(|py| x.and_then(|x| (i, x).into_py_any(py))))
+    }
+
+    fn take<I>(iter: I, n: usize) -> std::iter::Take<I>
+    where
+        I: Iterator<Item = PyResult<Py<PyAny>>>,
+    {
+        iter.take(n)
     }
 }
 
+type PyDoubleEndedIteratorT =
+    Box<dyn DoubleEndedIterator<Item = PyResult<Py<PyAny>>> + Send + Sync>;
 #[pyclass]
-pub struct PyBaseIteratorWrapper {
-    iter: Box<dyn PyBaseIterator>,
+pub struct PyDoubleEndedIterator {
+    iter: PyDoubleEndedIteratorT,
 }
 
-impl PyBaseIteratorWrapper {
-    fn take_inner(&mut self) -> Box<dyn PyBaseIterator> {
-        std::mem::replace(&mut self.iter, Box::new(std::iter::empty()))
+impl PyDoubleEndedIterator {
+    fn rev<I>(iter: I) -> std::iter::Rev<I>
+    where
+        I: DoubleEndedIterator<Item = PyResult<Py<PyAny>>>,
+    {
+        iter.rev()
     }
-}
-
-#[pyclass]
-pub struct PyDoubleEndedIteratorWrapper {
-    iter: Box<dyn DoubleEndedIterator<Item = PyResult<Py<PyAny>>> + Send + Sync>,
 }
 
 #[pyclass]
@@ -129,80 +190,5 @@ impl ListIterator {
         Self {
             iter: Box::new(PyListWrapper::new(list)),
         }
-    }
-
-    fn map(mut slf: PyRefMut<'_, Self>, f: Py<PyFunction>) -> PySizedDoubleEndedIteratorWrapper {
-        let it = std::mem::replace(&mut slf.iter, Box::new(std::iter::empty()));
-
-        PySizedDoubleEndedIteratorWrapper {
-            iter: Box::new(
-                it.map(move |x| Python::with_gil(|py| x.and_then(|x| f.call1(py, (x.bind(py),))))),
-            ),
-        }
-    }
-
-    #[allow(clippy::needless_pass_by_value)] // for f
-    fn fold(
-        mut slf: PyRefMut<'_, Self>,
-        init: Py<PyAny>,
-        f: Py<PyFunction>,
-    ) -> PyResult<Py<PyAny>> {
-        Python::with_gil(|py| {
-            slf.iter
-                .by_ref()
-                .try_fold(init, |a, x| x.and_then(|x| f.call1(py, (&a, x))))
-        })
-    }
-
-    fn rev(mut slf: PyRefMut<'_, Self>) -> PySizedDoubleEndedIteratorWrapper {
-        let it = std::mem::replace(&mut slf.iter, Box::new(std::iter::empty()));
-
-        PySizedDoubleEndedIteratorWrapper {
-            iter: Box::new(it.rev()),
-        }
-    }
-
-    fn take(mut slf: PyRefMut<'_, Self>, n: usize) -> Self {
-        Self {
-            iter: Box::new(slf.iter.by_ref().take(n).collect_vec().into_iter()),
-        }
-    }
-
-    fn enumerate(mut slf: PyRefMut<'_, Self>) -> PySizedDoubleEndedIteratorWrapper {
-        let it = std::mem::replace(&mut slf.iter, Box::new(std::iter::empty()));
-
-        PySizedDoubleEndedIteratorWrapper {
-            iter: Box::new(
-                it.enumerate().map(move |(i, x)| {
-                    Python::with_gil(|py| x.and_then(|x| (i, x).into_py_any(py)))
-                }),
-            ),
-        }
-    }
-
-    fn filter(mut slf: PyRefMut<'_, Self>, f: Py<PyFunction>) -> PyDoubleEndedIteratorWrapper {
-        let it = std::mem::replace(&mut slf.iter, Box::new(std::iter::empty()));
-
-        let bad_predicate = "exception in filter predicate";
-
-        PyDoubleEndedIteratorWrapper {
-            iter: Box::new(it.filter(move |x| {
-                Python::with_gil(|py| {
-                    let p = x
-                        .as_ref()
-                        .map(|x| f.call1(py, (x.bind(py),)))
-                        .expect(bad_predicate)
-                        .map(|x| x.is_truthy(py))
-                        .and_then(|x| x)
-                        .expect(bad_predicate);
-
-                    p
-                })
-            })),
-        }
-    }
-
-    fn to_list(&mut self) -> PyResult<Py<PyList>> {
-        PyBaseIterator::to_list(&mut self.iter)
     }
 }
