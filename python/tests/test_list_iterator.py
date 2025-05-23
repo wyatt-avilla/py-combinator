@@ -1,14 +1,14 @@
 from copy import deepcopy
 from itertools import islice
 
-from py_combinator import ListIterator
+from py_combinator import iterator_from
 
 # ruff: noqa: E731 S101
 
 
 def test_map_addition() -> None:
     nums = [1, 2, 3]
-    it = ListIterator(deepcopy(nums))
+    it = iterator_from(deepcopy(nums))
     f = lambda x: x + 1
 
     lib_mapped = it.map(f).to_list()
@@ -19,7 +19,7 @@ def test_map_addition() -> None:
 
 def test_multiple_maps() -> None:
     nums = [1, 2, 3]
-    it = ListIterator(deepcopy(nums))
+    it = iterator_from(deepcopy(nums))
     f1 = lambda x: x + 1
     f2 = lambda x: x * 2
 
@@ -32,22 +32,14 @@ def test_multiple_maps() -> None:
 def test_list_conversion() -> None:
     nums = [1, 2, 3]
 
-    it = ListIterator(nums)
+    it = iterator_from(nums)
 
     assert it.to_list() == nums
 
 
-def test_chaining() -> None:
-    c1 = ListIterator([1, 2, 3])
-    c2 = c1.map(lambda x: x)
-    c3 = c2.map(lambda x: x)
-
-    assert c1 is c2 is c3
-
-
 def test_fold() -> None:
     nums = [1, 2, 3]
-    it = ListIterator(nums)
+    it = iterator_from(nums)
 
     f = lambda acc, x: acc * x
     acc = 1
@@ -60,7 +52,7 @@ def test_fold() -> None:
 
 def test_map_fold() -> None:
     nums = [1, 2, 3]
-    it = ListIterator(deepcopy(nums))
+    it = iterator_from(deepcopy(nums))
 
     f_add = lambda x: x + 1
     f_fold = lambda acc, x: acc * x
@@ -74,7 +66,7 @@ def test_map_fold() -> None:
 
 def test_reverse() -> None:
     nums = [1, 2, 3]
-    it = ListIterator(deepcopy(nums))
+    it = iterator_from(deepcopy(nums))
 
     lib_reversed = it.rev().to_list()
     native_reversed = list(reversed(nums))
@@ -84,7 +76,7 @@ def test_reverse() -> None:
 
 def test_map_reverse() -> None:
     nums = [1, 2, 3]
-    it = ListIterator(deepcopy(nums))
+    it = iterator_from(deepcopy(nums))
 
     f = lambda x: x + 1
 
@@ -96,7 +88,7 @@ def test_map_reverse() -> None:
 
 def test_enumerate() -> None:
     nums = [1, 2, 3]
-    it = ListIterator(deepcopy(nums))
+    it = iterator_from(deepcopy(nums))
 
     lib_enumerate = it.enumerate().to_list()
     native_enumerate = list(enumerate(nums))
@@ -104,30 +96,23 @@ def test_enumerate() -> None:
     assert lib_enumerate == native_enumerate
 
 
-def test_pass_by_ref_semantics() -> None:
-    nums = [1, 2, 3]
-    it = ListIterator(nums)
-
-    assert it.to_list() is nums
-
-
 def test_enumerate_rev() -> None:
     nums = [1, 2, 3]
-    it = ListIterator(deepcopy(nums))
+    it = iterator_from(deepcopy(nums))
 
     assert it.enumerate().rev().to_list() == [(2, 3), (1, 2), (0, 1)]
 
 
 def test_rev_enumerate() -> None:
     nums = [1, 2, 3]
-    it = ListIterator(deepcopy(nums))
+    it = iterator_from(deepcopy(nums))
 
     assert it.rev().enumerate().to_list() == [(0, 3), (1, 2), (2, 1)]
 
 
 def test_filter() -> None:
     nums = [1, 2, 3, 4, 5]
-    it = ListIterator(deepcopy(nums))
+    it = iterator_from(deepcopy(nums))
 
     f = lambda x: x % 2 == 0
 
@@ -139,7 +124,7 @@ def test_filter() -> None:
 
 def test_filter_consecutive() -> None:
     nums = [2, 4, 6, 1, 2, 3]
-    it = ListIterator(deepcopy(nums))
+    it = iterator_from(deepcopy(nums))
 
     f = lambda x: x % 2 == 0
 
@@ -151,7 +136,7 @@ def test_filter_consecutive() -> None:
 
 def test_filter_negative_twice() -> None:
     nums = [1, 2, 3, 4, 5]
-    it = ListIterator(deepcopy(nums))
+    it = iterator_from(deepcopy(nums))
 
     f = lambda x: x < 0
 
@@ -163,13 +148,11 @@ def test_filter_negative_twice() -> None:
 
 def test_take() -> None:
     nums = [1, 2, 3, 4, 5]
-    lib_it = ListIterator(deepcopy(nums))
+    lib_it = iterator_from(deepcopy(nums))
     native_it = iter(deepcopy(nums))
 
     lib_taken = lib_it.take(1).to_list()
     native_taken = list(islice(native_it, 1))
-
-    assert isinstance(lib_taken, ListIterator)
 
     assert lib_taken == native_taken
     assert lib_it.to_list() == list(native_it)
@@ -177,7 +160,7 @@ def test_take() -> None:
 
 def test_take_2() -> None:
     nums = [1, 2, 3, 4, 5]
-    lib_it = ListIterator(deepcopy(nums))
+    lib_it = iterator_from(deepcopy(nums))
     native_it = iter(deepcopy(nums))
 
     lib_taken = lib_it.take(2).to_list()
@@ -189,7 +172,7 @@ def test_take_2() -> None:
 
 def test_map_take() -> None:
     nums = [1, 2, 3, 4, 5]
-    lib_it = ListIterator(deepcopy(nums))
+    lib_it = iterator_from(deepcopy(nums))
     native_it = iter(deepcopy(nums))
 
     f = lambda x: x + 10

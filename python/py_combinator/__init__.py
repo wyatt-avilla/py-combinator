@@ -1,5 +1,8 @@
 from py_combinator import _py_combinator as rs
-from py_combinator._py_combinator import ListIterator
+from py_combinator._py_combinator import (
+    PySizedDoubleEndedIterator as SizedDoubleEndedIterator,
+)
+from py_combinator._py_combinator import iterator_from
 
 from .wrappers import no_use_import, use_import
 
@@ -12,6 +15,6 @@ if hasattr(rs, "__all__"):
 
 __all__ += [
     "ListIterator",
-    "no_use_import",
-    "use_import",
+    "SizedDoubleEndedIterator",
+    "iterator_from",
 ]

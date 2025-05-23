@@ -1,22 +1,15 @@
 use pyo3::{prelude::*, types::PyList};
 
-trait SizedDoubleEndedIterator: Iterator + DoubleEndedIterator + ExactSizeIterator {}
-impl<T> SizedDoubleEndedIterator for T where T: Iterator + DoubleEndedIterator + ExactSizeIterator {}
-
 #[pyclass]
-pub struct PySizedDoubleEndedIterator {
-    iter: Box<dyn SizedDoubleEndedIterator<Item = PyResult<Py<PyAny>>> + Send + Sync>,
-}
-
-struct PyListWrapper {
+pub struct PyListIterator {
     list: Py<PyList>,
     start: usize,
     end: usize,
 }
 
-impl PyListWrapper {
-    fn new(list: &Bound<'_, PyList>) -> Self {
-        PyListWrapper {
+impl PyListIterator {
+    pub fn new(list: &Bound<'_, PyList>) -> Self {
+        PyListIterator {
             list: list.clone().unbind(),
             start: 0,
             end: list.len(),
@@ -24,7 +17,7 @@ impl PyListWrapper {
     }
 }
 
-impl Iterator for PyListWrapper {
+impl Iterator for PyListIterator {
     type Item = PyResult<Py<PyAny>>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -44,7 +37,7 @@ impl Iterator for PyListWrapper {
     }
 }
 
-impl DoubleEndedIterator for PyListWrapper {
+impl DoubleEndedIterator for PyListIterator {
     fn next_back(&mut self) -> Option<Self::Item> {
         if self.start < self.end {
             Python::with_gil(|py| -> Option<PyResult<Py<PyAny>>> {
@@ -62,23 +55,8 @@ impl DoubleEndedIterator for PyListWrapper {
     }
 }
 
-impl ExactSizeIterator for PyListWrapper {
+impl ExactSizeIterator for PyListIterator {
     fn len(&self) -> usize {
         self.end - self.start
-    }
-}
-
-#[pyclass]
-pub struct ListIterator {
-    iter: Box<dyn SizedDoubleEndedIterator<Item = PyResult<Py<PyAny>>> + Send + Sync>,
-}
-
-#[pymethods]
-impl ListIterator {
-    #[new]
-    fn py_new(list: &Bound<'_, PyList>) -> Self {
-        Self {
-            iter: Box::new(PyListWrapper::new(list)),
-        }
     }
 }

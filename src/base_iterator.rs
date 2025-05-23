@@ -11,6 +11,10 @@ pub struct PyBaseIterator {
 }
 
 impl PyBaseIterator {
+    pub fn new(iter: PyBaseIteratorT) -> Self {
+        Self { iter }
+    }
+
     pub fn take_inner(&mut self) -> PyBaseIteratorT {
         std::mem::replace(&mut self.iter, Box::new(std::iter::empty()))
     }

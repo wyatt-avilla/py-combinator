@@ -4,36 +4,30 @@ use pyo3::{
     types::{PyFunction, PyList},
 };
 
-use crate::base_iterator::PyBaseIterator;
+use crate::{base_iterator::PyBaseIterator, double_ended_iterator::PyDoubleEndedIterator};
 
-type PyDoubleEndedIteratorT =
-    Box<dyn DoubleEndedIterator<Item = PyResult<Py<PyAny>>> + Send + Sync>;
+pub trait SizedDoubleEndedIterator: Iterator + DoubleEndedIterator + ExactSizeIterator {}
+impl<T> SizedDoubleEndedIterator for T where T: Iterator + DoubleEndedIterator + ExactSizeIterator {}
+
+type PySizedDoubleEndedIteratorT =
+    Box<dyn SizedDoubleEndedIterator<Item = PyResult<Py<PyAny>>> + Send + Sync>;
 #[pyclass]
-pub struct PyDoubleEndedIterator {
-    iter: PyDoubleEndedIteratorT,
+pub struct PySizedDoubleEndedIterator {
+    iter: PySizedDoubleEndedIteratorT,
 }
 
-impl PyDoubleEndedIterator {
-    pub fn rev<I>(iter: I) -> std::iter::Rev<I>
-    where
-        I: DoubleEndedIterator<Item = PyResult<Py<PyAny>>>,
-    {
-        iter.rev()
-    }
-}
-
-impl PyDoubleEndedIterator {
-    pub fn new(iter: PyDoubleEndedIteratorT) -> Self {
+impl PySizedDoubleEndedIterator {
+    pub fn new(iter: PySizedDoubleEndedIteratorT) -> Self {
         Self { iter }
     }
 
-    pub fn take_inner(&mut self) -> PyDoubleEndedIteratorT {
+    pub fn take_inner(&mut self) -> PySizedDoubleEndedIteratorT {
         std::mem::replace(&mut self.iter, Box::new(std::iter::empty()))
     }
 }
 
 #[pymethods]
-impl PyDoubleEndedIterator {
+impl PySizedDoubleEndedIterator {
     pub fn to_list(&mut self) -> PyResult<Py<PyList>> {
         PyBaseIterator::to_list(&mut self.iter)
     }
@@ -54,11 +48,19 @@ impl PyDoubleEndedIterator {
         })
     }
 
+    pub fn enumerate(&mut self) -> Self {
+        Self::new(Box::new(PyBaseIterator::enumerate(self.take_inner())))
+    }
+
     pub fn take(&mut self, n: usize) -> Self {
         Self::new(Box::new(
             PyBaseIterator::take(self.iter.by_ref(), n)
                 .collect_vec()
                 .into_iter(),
         ))
+    }
+
+    pub fn rev(&mut self) -> Self {
+        Self::new(Box::new(PyDoubleEndedIterator::rev(self.take_inner())))
     }
 }
