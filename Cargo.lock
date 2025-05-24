@@ -108,6 +108,7 @@ dependencies = [
  "quote",
  "serde",
  "serde_json",
+ "serialization",
  "syn",
  "thiserror",
  "walkdir",
@@ -230,6 +231,19 @@ dependencies = [
  "memchr",
  "ryu",
  "serde",
+]
+
+[[package]]
+name = "serialization"
+version = "0.1.0"
+dependencies = [
+ "itertools",
+ "quote",
+ "serde",
+ "serde_json",
+ "syn",
+ "thiserror",
+ "walkdir",
 ]
 
 [[package]]
