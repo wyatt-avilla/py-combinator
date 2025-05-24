@@ -17,7 +17,7 @@ impl PyBaseIterator {
 }
 
 #[macros::register_methods]
-impl PyBaseIterator {
+impl crate::base_iterator::PyBaseIterator {
     pub fn new(iter: PyBaseIteratorT) -> Self {
         Self { iter }
     }

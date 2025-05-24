@@ -2,6 +2,7 @@ use itertools::{self, Itertools};
 use quote::ToTokens;
 use serde::Serialize;
 use syn::{Item, ItemImpl};
+use thiserror::Error;
 use walkdir::WalkDir;
 
 macro_rules! log {
@@ -32,19 +33,33 @@ struct Method {
     return_type: Option<String>,
 }
 
-fn parse_impl_block(impl_block: &ItemImpl) -> Option<ImplBlock> {
+#[derive(Debug, Error)]
+enum ImplBlockParseError {
+    #[error("Couldn't destructure `ItemImpl` into `Type::Path`")]
+    PathDestructure,
+
+    #[error("Attempted to register methods without a fully qualified impl block path")]
+    UnqualifiedPath,
+}
+
+fn parse_impl_block(impl_block: &ItemImpl) -> Result<ImplBlock, ImplBlockParseError> {
     if let syn::Type::Path(p) = *impl_block.clone().self_ty {
-        let name = p
+        let name: Vec<_> = p
             .path
             .segments
             .iter()
             .map(|x| x.clone().ident.to_string())
             .collect();
+
+        if name.iter().any(|n| n == "self") || !name.iter().any(|n| n == "crate") {
+            return Err(ImplBlockParseError::UnqualifiedPath);
+        }
+
         let methods = parse_methods(impl_block);
 
-        Some(ImplBlock { name, methods })
+        Ok(ImplBlock { name, methods })
     } else {
-        None
+        Err(ImplBlockParseError::PathDestructure)
     }
 }
 
@@ -79,18 +94,18 @@ fn parse_methods(impl_block: &ItemImpl) -> Vec<Method> {
         .collect()
 }
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut impl_blocks: Vec<ImplBlock> = Vec::new();
 
     for entry in WalkDir::new("src") {
-        let entry = entry.unwrap();
+        let entry = entry?;
         let path = entry.path();
         if path.extension().is_none_or(|e| e != "rs") {
             continue;
         }
 
-        let src = std::fs::read_to_string(path).unwrap();
-        let file = syn::parse_file(&src).unwrap();
+        let src = std::fs::read_to_string(path)?;
+        let file = syn::parse_file(&src)?;
 
         for item in file.items {
             if let Item::Impl(impl_block) = item {
@@ -101,9 +116,7 @@ fn main() {
                         .any(|s| s.ident == REGISTER_METHODS_ATTRIBUTE)
                 });
                 if has_marker {
-                    let impl_block = parse_impl_block(&impl_block).unwrap_or_else(|| {
-                        panic!("found #[{REGISTER_METHODS_ATTRIBUTE}], but couldn't parse it")
-                    });
+                    let impl_block = parse_impl_block(&impl_block).map_err(|e| e.to_string())?;
                     impl_blocks.push(impl_block);
                 }
             }
@@ -129,4 +142,5 @@ fn main() {
     .unwrap();
 
     println!("cargo:rerun-if-changed=src/");
+    Ok(())
 }
