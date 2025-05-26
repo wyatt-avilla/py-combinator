@@ -20,7 +20,10 @@ impl PySizedDoubleEndedIterator {
     pub fn new(iter: PySizedDoubleEndedIteratorT) -> Self {
         Self { iter }
     }
+}
 
+#[macros::register_methods(self_generic = S)]
+impl crate::sized_double_ended_iterator::PySizedDoubleEndedIterator {
     #[macros::method_self_arg]
     pub fn take_inner(&mut self) -> PySizedDoubleEndedIteratorT {
         std::mem::replace(&mut self.iter, Box::new(std::iter::empty()))

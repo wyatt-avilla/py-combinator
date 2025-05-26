@@ -16,7 +16,10 @@ impl PyExactSizeIterator {
     pub fn new(iter: PyExactSizeIteratorT) -> Self {
         Self { iter }
     }
+}
 
+#[macros::register_methods(self_generic = S)]
+impl crate::exact_size_iterator::PyExactSizeIterator {
     #[macros::method_self_arg]
     pub fn take_inner(&mut self) -> PyExactSizeIteratorT {
         std::mem::replace(&mut self.iter, Box::new(std::iter::empty()))
