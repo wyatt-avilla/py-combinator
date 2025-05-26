@@ -13,12 +13,14 @@ impl PyBaseIterator {
 
 #[macros::register_methods(self_generic = S)]
 impl crate::base_iterator::PyBaseIterator {
+    #[macros::return_literal]
     pub fn new(
         iter: Box<dyn Iterator<Item = pyo3::PyResult<pyo3::Py<pyo3::types::PyAny>>> + Send + Sync>,
     ) -> Self {
         Self { iter }
     }
 
+    #[macros::return_literal]
     pub fn to_list<S>(iter: S) -> pyo3::PyResult<pyo3::Py<pyo3::types::PyList>>
     where
         S: Iterator<Item = pyo3::PyResult<pyo3::Py<pyo3::types::PyAny>>>,

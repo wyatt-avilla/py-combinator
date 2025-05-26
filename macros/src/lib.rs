@@ -78,3 +78,8 @@ pub fn strips_traits(attr: TokenStream, token_stream: TokenStream) -> TokenStrea
 
     unchanged
 }
+
+#[proc_macro_attribute]
+pub fn return_literal(_attr: TokenStream, token_stream: TokenStream) -> TokenStream {
+    token_stream
+}
