@@ -1,5 +1,7 @@
 #![warn(clippy::pedantic)]
 
+use std::collections::BTreeSet;
+
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{ItemImpl, parse_macro_input};
@@ -27,6 +29,38 @@ pub fn register_methods(_attr: TokenStream, token_stream: TokenStream) -> TokenS
     } else {
         return quote! {
             compile_error!("expected a path type in impl block (e.g., impl crate::foo::Bar), got something else");
+        }
+        .into();
+    }
+
+    unchanged
+}
+
+#[proc_macro_attribute]
+pub fn strips_traits(attr: TokenStream, token_stream: TokenStream) -> TokenStream {
+    let unchanged = token_stream.clone();
+
+    let allowed_traits = BTreeSet::from([
+        String::from("PyBaseIterator"),
+        String::from("PyDoubleEndedIterator"),
+        String::from("PyExactSizeIterator"),
+    ]);
+
+    let striped_traits = attr
+        .into_iter()
+        .filter_map(|tt| {
+            if let proc_macro::TokenTree::Ident(i) = tt {
+                Some(i.to_string())
+            } else {
+                None
+            }
+        })
+        .collect::<BTreeSet<_>>();
+
+    if !striped_traits.is_subset(&allowed_traits) {
+        let e = format!("Invalid trait to strip, expected one of {allowed_traits:#?}",);
+        return quote! {
+            compile_error!(#e);
         }
         .into();
     }

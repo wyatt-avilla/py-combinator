@@ -27,6 +27,7 @@ impl crate::base_iterator::PyBaseIterator {
         pyo3::Python::with_gil(|py| Ok(pyo3::types::PyList::new(py, v)?.unbind()))
     }
 
+    #[macros::strips_traits(PyExactSizeIterator)]
     pub fn filter<S>(
         iter: S,
         f: pyo3::Py<pyo3::types::PyFunction>,
