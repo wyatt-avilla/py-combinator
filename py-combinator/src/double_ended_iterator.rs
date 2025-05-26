@@ -42,7 +42,7 @@ impl PyDoubleEndedIterator {
         Self::new(Box::new(PyBaseIterator::map(self.take_inner(), f)))
     }
 
-    pub fn filter(&mut self, f: Py<PyFunction>) -> PyDoubleEndedIterator {
+    pub fn filter(&mut self, f: Py<PyFunction>) -> Self {
         PyDoubleEndedIterator::new(Box::new(PyBaseIterator::filter(self.take_inner(), f)))
     }
 
