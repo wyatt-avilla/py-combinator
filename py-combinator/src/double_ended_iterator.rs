@@ -27,6 +27,7 @@ impl PyDoubleEndedIterator {
         Self { iter }
     }
 
+    #[macros::method_self_arg]
     pub fn take_inner(&mut self) -> PyDoubleEndedIteratorT {
         std::mem::replace(&mut self.iter, Box::new(std::iter::empty()))
     }

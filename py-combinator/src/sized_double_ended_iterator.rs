@@ -21,6 +21,7 @@ impl PySizedDoubleEndedIterator {
         Self { iter }
     }
 
+    #[macros::method_self_arg]
     pub fn take_inner(&mut self) -> PySizedDoubleEndedIteratorT {
         std::mem::replace(&mut self.iter, Box::new(std::iter::empty()))
     }
