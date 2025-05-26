@@ -15,9 +15,6 @@ pub struct ImplBlock {
 pub enum ImplBlockParseError {
     #[error("Couldn't destructure `ItemImpl` into `Type::Path`")]
     PathDestructure,
-
-    #[error("Attempted to register methods without a fully qualified impl block path")]
-    UnqualifiedPath,
 }
 
 // lol
@@ -34,10 +31,6 @@ impl ImplBlock {
                 .iter()
                 .map(|x| x.clone().ident.to_string())
                 .collect();
-
-            if name.iter().any(|n| n == "self") || !name.iter().any(|n| n == "crate") {
-                return Err(ImplBlockParseError::UnqualifiedPath);
-            }
 
             let methods = Method::vec_from(impl_block);
 
