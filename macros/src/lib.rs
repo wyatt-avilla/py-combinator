@@ -7,8 +7,19 @@ use quote::quote;
 use syn::{ItemImpl, parse_macro_input};
 
 #[proc_macro_attribute]
-pub fn register_methods(_attr: TokenStream, token_stream: TokenStream) -> TokenStream {
+pub fn register_methods(attr: TokenStream, token_stream: TokenStream) -> TokenStream {
     let unchanged = token_stream.clone();
+
+    if parse_macro_input!(attr as syn::MetaNameValue)
+        .path
+        .get_ident()
+        .is_none_or(|k| *k.to_string() != *"self_generic")
+    {
+        return quote! {
+            compile_error!("expected an assignment to `self_generic` (e.g #[register_methods(self_generic = S)])");
+        }
+        .into();
+    }
 
     if let syn::Type::Path(p) = *parse_macro_input!(token_stream as ItemImpl).self_ty {
         let path_segments: Vec<_> = p
