@@ -6,6 +6,8 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{ItemImpl, parse_macro_input};
 
+use serialization::SELF_GENERIC_ATTRIBUTE;
+
 #[proc_macro_attribute]
 pub fn register_methods(attr: TokenStream, token_stream: TokenStream) -> TokenStream {
     let unchanged = token_stream.clone();
@@ -13,10 +15,13 @@ pub fn register_methods(attr: TokenStream, token_stream: TokenStream) -> TokenSt
     if parse_macro_input!(attr as syn::MetaNameValue)
         .path
         .get_ident()
-        .is_none_or(|k| *k.to_string() != *"self_generic")
+        .is_none_or(|k| *k.to_string() != *SELF_GENERIC_ATTRIBUTE)
     {
+        let e = format!(
+            "expected an assignment to `self_generic` (e.g #[register_methods({SELF_GENERIC_ATTRIBUTE} = S)])"
+        );
         return quote! {
-            compile_error!("expected an assignment to `self_generic` (e.g #[register_methods(self_generic = S)])");
+            compile_error!(#e);
         }
         .into();
     }
