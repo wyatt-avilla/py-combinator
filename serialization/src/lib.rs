@@ -4,6 +4,7 @@
 
 mod impl_block;
 mod method;
+mod self_generic;
 
 pub use impl_block::ImplBlock;
 pub use method::Method;
