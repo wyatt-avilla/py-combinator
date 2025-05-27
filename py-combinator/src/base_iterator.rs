@@ -3,16 +3,15 @@ pub struct PyBaseIterator {
     iter: Box<dyn Iterator<Item = pyo3::PyResult<pyo3::Py<pyo3::types::PyAny>>> + Send + Sync>,
 }
 
-impl PyBaseIterator {
+#[macros::register_methods(self_generic = S)]
+impl crate::base_iterator::PyBaseIterator {
+    #[macros::method_self_arg]
     pub fn take_inner(
         &mut self,
     ) -> Box<dyn Iterator<Item = pyo3::PyResult<pyo3::Py<pyo3::types::PyAny>>> + Send + Sync> {
         std::mem::replace(&mut self.iter, Box::new(std::iter::empty()))
     }
-}
 
-#[macros::register_methods(self_generic = S)]
-impl crate::base_iterator::PyBaseIterator {
     #[macros::return_literal]
     pub fn new(
         iter: Box<dyn Iterator<Item = pyo3::PyResult<pyo3::Py<pyo3::types::PyAny>>> + Send + Sync>,
