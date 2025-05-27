@@ -1,4 +1,9 @@
-use crate::method::{self, Method};
+use std::collections::BTreeSet;
+
+use crate::{
+    RETURN_LITERAL_ATTRIBUTE, STRIPS_TRAITS_ATTRIBUTE,
+    method::{self, Method},
+};
 
 use itertools::{self, Itertools};
 use serde::Serialize;
@@ -27,6 +32,9 @@ pub enum ImplBlockParseError {
 
     #[error("Couldn't find Self generic parameter")]
     MissingSelfGeneric,
+
+    #[error("Couldn't parse one of attribute blocks")]
+    AttributeParseError(String),
 
     #[error("Couldn't parse one of the methods")]
     MethodParseError(method::MethodParseError),
@@ -68,7 +76,7 @@ impl ImplBlock {
     pub fn find_method_with_attribute_containing(
         impl_block: &ItemImpl,
         attr_query: &str,
-    ) -> Vec<syn::Signature> {
+    ) -> Vec<syn::ImplItemFn> {
         impl_block
             .items
             .iter()
@@ -79,7 +87,8 @@ impl ImplBlock {
             .filter_map(|i| {
                 let path = i.attrs.clone().first().cloned().and_then(|a| match a.meta {
                     Meta::Path(p) => Some(p.segments),
-                    _ => None,
+                    Meta::List(l) => Some(l.path.segments),
+                    Meta::NameValue(_) => None,
                 });
 
                 if path.is_some_and(|p| p.into_iter().map(|p| p.ident).any(|i| i == attr_query)) {
@@ -88,7 +97,6 @@ impl ImplBlock {
                     None
                 }
             })
-            .map(|i| i.sig)
             .collect()
     }
 }

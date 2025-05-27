@@ -1,51 +1,49 @@
-use syn::parse::{Parse, ParseStream, Result as ParseResult};
-use syn::{Ident, Token};
-
-use crate::{REGISTER_METHODS_ATTRIBUTE, SELF_GENERIC_ATTRIBUTE};
+use crate::{
+    SELF_GENERIC_ATTRIBUTE,
+    attr_list::{AttributeArg, AttributeArgsList},
+};
 
 use itertools::{self, Itertools};
 use syn::ItemImpl;
 
 use crate::impl_block::{ImplBlock, ImplBlockParseError};
 
-pub struct Arg {
-    pub key: Ident,
-    _eq_token: Token![=],
-    pub value: Ident,
-}
-
-impl Parse for Arg {
-    fn parse(input: ParseStream) -> ParseResult<Self> {
-        Ok(Self {
-            key: input.parse()?,
-            _eq_token: input.parse()?,
-            value: input.parse()?,
-        })
-    }
-}
-
 impl ImplBlock {
     pub fn parse_self_generic(impl_block: &ItemImpl) -> Result<String, ImplBlockParseError> {
-        let register_attr = impl_block
+        let register_attrs = impl_block
             .attrs
             .iter()
-            .find(|attr| {
-                attr.path().is_ident(REGISTER_METHODS_ATTRIBUTE)
-                    || (attr
-                        .path()
-                        .segments
-                        .iter()
-                        .map(|s| s.ident.to_string())
-                        .contains(REGISTER_METHODS_ATTRIBUTE))
+            .map(|attr| {
+                attr.parse_args::<AttributeArgsList>()
+                    .map_err(|e| ImplBlockParseError::AttributeParseError(e.to_string()))
             })
-            .ok_or(ImplBlockParseError::MissingSelfGeneric)?;
+            .map_ok(|args| {
+                args.0.into_iter().find_map(|a| {
+                    if let AttributeArg::KeyValueArg(kv) = a {
+                        if kv.key == SELF_GENERIC_ATTRIBUTE {
+                            Some(kv)
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    }
+                })
+            })
+            .collect::<Result<Vec<_>, ImplBlockParseError>>()?
+            .into_iter()
+            .flatten()
+            .collect_vec();
 
-        let arg: crate::self_generic::Arg = register_attr
-            .parse_args()
-            .map_err(|_| ImplBlockParseError::MalformedSelfFunctionMarker)?;
+        if register_attrs.len() != 1 {
+            return Err(ImplBlockParseError::NotExactlyOneSelfFunctionMarker);
+        }
 
-        if arg.key == SELF_GENERIC_ATTRIBUTE {
-            Ok(arg.value.to_string())
+        let key = &register_attrs[0].key;
+        let val = &register_attrs[0].value;
+
+        if key == SELF_GENERIC_ATTRIBUTE {
+            Ok(val.to_string())
         } else {
             Err(ImplBlockParseError::MissingSelfGeneric)
         }
