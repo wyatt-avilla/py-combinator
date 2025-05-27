@@ -51,13 +51,14 @@ impl ImplBlock {
 
             let self_function = ImplBlock::parse_self_function(impl_block)?;
 
-            let methods = Method::vec_from(impl_block);
+            let methods =
+                Method::vec_from(impl_block).map_err(ImplBlockParseError::MethodParseError)?;
 
             Ok(ImplBlock {
                 name,
                 self_function,
                 self_generic,
-                methods: methods.map_err(ImplBlockParseError::MethodParseError)?,
+                methods,
             })
         } else {
             Err(ImplBlockParseError::PathDestructure)
