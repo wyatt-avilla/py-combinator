@@ -2,7 +2,7 @@ use crate::method::{self, Method};
 
 use itertools::{self, Itertools};
 use serde::Serialize;
-use syn::ItemImpl;
+use syn::{ImplItem, ItemImpl, Meta};
 
 use thiserror::Error;
 
@@ -20,7 +20,7 @@ pub enum ImplBlockParseError {
     PathDestructure,
 
     #[error("Didn't find exactly one `method_self_arg` attribute")]
-    MultipleSelfFunctionMarkers,
+    NotExactlyOneSelfFunctionMarker,
 
     #[error("`method_self_arg` attribute is malformed")]
     MalformedSelfFunctionMarker,
@@ -63,5 +63,32 @@ impl ImplBlock {
         } else {
             Err(ImplBlockParseError::PathDestructure)
         }
+    }
+
+    pub fn find_method_with_attribute_containing(
+        impl_block: &ItemImpl,
+        attr_query: &str,
+    ) -> Vec<syn::Signature> {
+        impl_block
+            .items
+            .iter()
+            .filter_map(|x| match x {
+                ImplItem::Fn(f) => Some(f.clone()),
+                _ => None,
+            })
+            .filter_map(|i| {
+                let path = i.attrs.clone().first().cloned().and_then(|a| match a.meta {
+                    Meta::Path(p) => Some(p.segments),
+                    _ => None,
+                });
+
+                if path.is_some_and(|p| p.into_iter().map(|p| p.ident).any(|i| i == attr_query)) {
+                    Some(i)
+                } else {
+                    None
+                }
+            })
+            .map(|i| i.sig)
+            .collect()
     }
 }
