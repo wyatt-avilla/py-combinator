@@ -2,23 +2,31 @@ use syn::parse::{Parse, ParseStream, Result as ParseResult};
 use syn::punctuated::Punctuated;
 use syn::{Ident, Token};
 
-use syn::ItemImpl;
-
+#[derive(Debug, Clone)]
 pub struct AttributeArgsList(pub Vec<AttributeArg>);
 
+#[derive(Debug, Clone)]
 pub enum AttributeArg {
     KeyValueArg(KeyValueArg),
     Arg(Arg),
 }
 
+#[derive(Debug, Clone)]
 pub struct KeyValueArg {
     pub key: Ident,
     _eq_token: Token![=],
     pub value: Ident,
 }
 
+#[derive(Debug, Clone)]
 pub struct Arg {
     pub value: Ident,
+}
+
+impl ToString for Arg {
+    fn to_string(&self) -> String {
+        self.value.to_string()
+    }
 }
 
 impl Parse for KeyValueArg {

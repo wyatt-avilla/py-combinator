@@ -15,12 +15,13 @@ impl ImplBlock {
         }
 
         if self_function_vec[0]
+            .0
             .sig
             .inputs
             .first()
             .is_some_and(|a| matches!(a, syn::FnArg::Receiver(_)))
         {
-            Ok(self_function_vec[0].sig.ident.to_string())
+            Ok(self_function_vec[0].0.sig.ident.to_string())
         } else {
             Err(ImplBlockParseError::MalformedSelfFunctionMarker)
         }
