@@ -62,7 +62,7 @@ pub fn strips_traits(attr: TokenStream, token_stream: TokenStream) -> TokenStrea
         String::from("PyExactSizeIterator"),
     ]);
 
-    let striped_traits = attr
+    let stripped_traits = attr
         .into_iter()
         .filter_map(|tt| {
             if let proc_macro::TokenTree::Ident(i) = tt {
@@ -73,7 +73,7 @@ pub fn strips_traits(attr: TokenStream, token_stream: TokenStream) -> TokenStrea
         })
         .collect::<BTreeSet<_>>();
 
-    if !striped_traits.is_subset(&allowed_traits) {
+    if !stripped_traits.is_subset(&allowed_traits) {
         let e = format!("Invalid trait to strip, expected one of {allowed_traits:#?}",);
         return quote! {
             compile_error!(#e);
