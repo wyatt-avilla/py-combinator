@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use itertools::Itertools;
 use quote::ToTokens;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use syn::{ImplItemFn, ItemImpl};
 
 use crate::{
@@ -11,14 +11,14 @@ use crate::{
     impl_block::ImplBlockParseError,
 };
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Argument {
     mutable: bool,
     name: String,
     expected_type: String,
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Method {
     comments: Option<String>,
     name: String,

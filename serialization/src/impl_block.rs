@@ -1,12 +1,12 @@
 use crate::method::Method;
 
 use itertools::{self, Itertools};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use syn::{ImplItem, ItemImpl, Meta};
 
 use thiserror::Error;
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct ImplBlock {
     name: Vec<String>,
     self_function: String,
