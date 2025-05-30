@@ -54,17 +54,14 @@ pub fn register_methods(attr: TokenStream, token_stream: TokenStream) -> TokenSt
     unchanged
 }
 
-#[proc_macro_attribute]
-pub fn strips_traits(attr: TokenStream, token_stream: TokenStream) -> TokenStream {
-    let unchanged = token_stream.clone();
-
+fn validate_selected_traits(attr: TokenStream) -> Result<BTreeSet<String>, String> {
     let allowed_traits = BTreeSet::from([
         String::from("PyBaseIterator"),
         String::from("PyDoubleEndedIterator"),
         String::from("PyExactSizeIterator"),
     ]);
 
-    let stripped_traits = attr
+    let selected_traits = attr
         .into_iter()
         .filter_map(|tt| {
             if let proc_macro::TokenTree::Ident(i) = tt {
@@ -75,12 +72,27 @@ pub fn strips_traits(attr: TokenStream, token_stream: TokenStream) -> TokenStrea
         })
         .collect::<BTreeSet<_>>();
 
-    if !stripped_traits.is_subset(&allowed_traits) {
-        let e = format!("Invalid trait to strip, expected one of {allowed_traits:#?}",);
-        return quote! {
-            compile_error!(#e);
+    if selected_traits.is_subset(&allowed_traits) {
+        Ok(selected_traits)
+    } else {
+        Err(format!(
+            "Invalid trait to strip, expected one of {allowed_traits:#?}",
+        ))
+    }
+}
+
+#[proc_macro_attribute]
+pub fn strips_traits(attr: TokenStream, token_stream: TokenStream) -> TokenStream {
+    let unchanged = token_stream.clone();
+
+    match validate_selected_traits(attr) {
+        Ok(_) => {}
+        Err(e) => {
+            return quote! {
+                compile_error!(#e);
+            }
+            .into();
         }
-        .into();
     }
 
     unchanged
@@ -99,30 +111,15 @@ pub fn method_self_arg(_attr: TokenStream, token_stream: TokenStream) -> TokenSt
 #[proc_macro_attribute]
 #[allow(clippy::too_many_lines)]
 pub fn add_trait_methods(attr: TokenStream, token_stream: TokenStream) -> TokenStream {
-    let allowed_traits = BTreeSet::from([
-        String::from("PyBaseIterator"),
-        String::from("PyDoubleEndedIterator"),
-        String::from("PyExactSizeIterator"),
-    ]);
-
-    let added_traits = attr
-        .into_iter()
-        .filter_map(|tt| {
-            if let proc_macro::TokenTree::Ident(i) = tt {
-                Some(i.to_string())
-            } else {
-                None
+    let added_traits = match validate_selected_traits(attr) {
+        Ok(t) => t,
+        Err(e) => {
+            return quote! {
+                compile_error!(#e);
             }
-        })
-        .collect::<BTreeSet<_>>();
-
-    if !added_traits.is_subset(&allowed_traits) {
-        let e = format!("Invalid trait to add, expected one of {allowed_traits:#?}",);
-        return quote! {
-            compile_error!(#e);
+            .into();
         }
-        .into();
-    }
+    };
 
     let mut input = parse_macro_input!(token_stream as ItemImpl);
 
