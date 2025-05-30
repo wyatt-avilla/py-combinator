@@ -109,9 +109,10 @@ pub fn method_self_arg(_attr: TokenStream, token_stream: TokenStream) -> TokenSt
 }
 
 fn method_into_impl_item(method: &Method, impl_block: &ImplBlock) -> Result<ImplItemFn, String> {
-    let qualified_trait_name = parse_str::<syn::Path>(impl_block.nice_name().as_ref()).unwrap();
+    let qualified_trait_name =
+        parse_str::<syn::Path>(impl_block.nice_name().as_ref()).map_err(|e| e.to_string())?;
 
-    let method_name = parse_str::<Ident>(&method.name).unwrap();
+    let method_name = parse_str::<Ident>(&method.name).map_err(|e| e.to_string())?;
     let arg_names: Vec<Ident> = method
         .args
         .iter()
@@ -119,25 +120,23 @@ fn method_into_impl_item(method: &Method, impl_block: &ImplBlock) -> Result<Impl
             if a.expected_type == impl_block.self_generic {
                 None
             } else {
-                Some(parse_str::<Ident>(&a.name).unwrap())
+                Some(parse_str::<Ident>(&a.name))
             }
         })
-        .collect();
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())?;
 
     let typed_args: TokenStream2 = Itertools::intersperse(
         method
             .args
             .iter()
-            .filter_map(|arg| {
-                if arg.expected_type == impl_block.self_generic {
-                    None
-                } else {
-                    let name = parse_str::<Ident>(&arg.name).unwrap();
-                    let ty = parse_str::<syn::Type>(&arg.expected_type).unwrap();
-                    Some(quote! { #name: #ty })
-                }
+            .filter(|arg| arg.expected_type != impl_block.self_generic)
+            .map(|arg| {
+                let name = parse_str::<Ident>(&arg.name).map_err(|e| e.to_string())?;
+                let ty = parse_str::<syn::Type>(&arg.expected_type).map_err(|e| e.to_string())?;
+                Ok(quote! { #name: #ty })
             })
-            .collect::<Vec<_>>()
+            .collect::<Result<Vec<_>, String>>()?
             .into_iter(),
         quote! { , },
     )
@@ -150,7 +149,7 @@ fn method_into_impl_item(method: &Method, impl_block: &ImplBlock) -> Result<Impl
             .and_then(|ret| parse_str::<syn::Type>(ret).ok());
 
         let return_tokens = if let Some(ret_ty) = return_type {
-            quote! { -> #ret_ty }
+            quote! { - #ret_ty }
         } else {
             quote! {}
         };
@@ -160,7 +159,8 @@ fn method_into_impl_item(method: &Method, impl_block: &ImplBlock) -> Result<Impl
                 .collect();
 
         let self_function_str = impl_block.self_function.clone();
-        let self_function: TokenStream2 = parse_str(&self_function_str).unwrap();
+        let self_function: TokenStream2 =
+            parse_str(&self_function_str).map_err(|e| e.to_string())?;
 
         let test_quote = quote! {
             pub fn #method_name(&mut self , #typed_args) #return_tokens {
