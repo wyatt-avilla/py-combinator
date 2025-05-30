@@ -8,10 +8,10 @@ use thiserror::Error;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ImplBlock {
-    name: Vec<String>,
-    self_function: String,
-    self_generic: String,
-    methods: Vec<Method>,
+    pub name: Vec<String>,
+    pub self_function: String,
+    pub self_generic: String,
+    pub methods: Vec<Method>,
 }
 
 #[derive(Debug, Error)]
