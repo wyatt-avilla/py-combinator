@@ -3,6 +3,14 @@ pub struct PyBaseIterator {
     iter: Box<dyn Iterator<Item = pyo3::PyResult<pyo3::Py<pyo3::types::PyAny>>> + Send + Sync>,
 }
 
+impl PyBaseIterator {
+    pub fn new(
+        iter: Box<dyn Iterator<Item = pyo3::PyResult<pyo3::Py<pyo3::types::PyAny>>> + Send + Sync>,
+    ) -> Self {
+        Self { iter }
+    }
+}
+
 #[macros::register_methods(self_generic = S)]
 impl crate::base_iterator::PyBaseIterator {
     #[macros::method_self_arg]
@@ -10,13 +18,6 @@ impl crate::base_iterator::PyBaseIterator {
         &mut self,
     ) -> Box<dyn Iterator<Item = pyo3::PyResult<pyo3::Py<pyo3::types::PyAny>>> + Send + Sync> {
         std::mem::replace(&mut self.iter, Box::new(std::iter::empty()))
-    }
-
-    #[macros::return_literal]
-    pub fn new(
-        iter: Box<dyn Iterator<Item = pyo3::PyResult<pyo3::Py<pyo3::types::PyAny>>> + Send + Sync>,
-    ) -> Self {
-        Self { iter }
     }
 
     #[macros::return_literal]
@@ -28,6 +29,23 @@ impl crate::base_iterator::PyBaseIterator {
         pyo3::Python::with_gil(|py| Ok(pyo3::types::PyList::new(py, v)?.unbind()))
     }
 
+    #[allow(clippy::needless_pass_by_value)] // for f
+    #[macros::return_literal]
+    pub fn fold<S>(
+        mut iter: S,
+        init: pyo3::Py<pyo3::types::PyAny>,
+        f: pyo3::Py<pyo3::types::PyFunction>,
+    ) -> pyo3::PyResult<pyo3::Py<pyo3::types::PyAny>>
+    where
+        S: Iterator<Item = pyo3::PyResult<pyo3::Py<pyo3::types::PyAny>>>,
+    {
+        pyo3::Python::with_gil(|py| {
+            iter.try_fold(init, |a, x| x.and_then(|x| f.call1(py, (&a, x))))
+        })
+    }
+}
+
+impl crate::base_iterator::PyBaseIterator {
     #[macros::strips_traits(PyExactSizeIterator)]
     pub fn filter<S>(
         iter: S,
@@ -67,20 +85,6 @@ impl crate::base_iterator::PyBaseIterator {
         S: Iterator<Item = pyo3::PyResult<pyo3::Py<pyo3::types::PyAny>>>,
     {
         iter.map(move |x| pyo3::Python::with_gil(|py| x.and_then(|x| f.call1(py, (x.bind(py),)))))
-    }
-
-    #[allow(clippy::needless_pass_by_value)] // for f
-    pub fn fold<S>(
-        mut iter: S,
-        init: pyo3::Py<pyo3::types::PyAny>,
-        f: pyo3::Py<pyo3::types::PyFunction>,
-    ) -> pyo3::PyResult<pyo3::Py<pyo3::types::PyAny>>
-    where
-        S: Iterator<Item = pyo3::PyResult<pyo3::Py<pyo3::types::PyAny>>>,
-    {
-        pyo3::Python::with_gil(|py| {
-            iter.try_fold(init, |a, x| x.and_then(|x| f.call1(py, (&a, x))))
-        })
     }
 
     #[allow(clippy::type_complexity)]

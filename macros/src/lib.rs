@@ -1,6 +1,6 @@
 #![warn(clippy::pedantic)]
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use itertools::Itertools;
 use proc_macro::TokenStream;
@@ -8,7 +8,7 @@ use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 use syn::{Ident, ImplItem, ImplItemFn, ItemImpl, parse_macro_input, parse_str};
 
-use serialization::{ImplBlock, Method, SELF_GENERIC_ATTRIBUTE, SERIALIZED_METHODS_PATH};
+use serialization::{ImplBlock, Method, SELF_GENERIC_ATTRIBUTE};
 
 #[proc_macro_attribute]
 pub fn register_methods(attr: TokenStream, token_stream: TokenStream) -> TokenStream {
@@ -142,48 +142,45 @@ fn method_into_impl_item(method: &Method, impl_block: &ImplBlock) -> Result<Impl
     )
     .collect();
 
-    if method.literal_return {
-        let return_type: Option<syn::Type> = method
+    let call_args: TokenStream2 =
+        Itertools::intersperse(arg_names.iter().map(|name| quote! { #name }), quote! { , })
+            .collect();
+
+    let self_function: TokenStream2 =
+        parse_str(&impl_block.self_function.clone()).map_err(|e| e.to_string())?;
+
+    let return_tokens: TokenStream2 = {
+        let return_type = method
             .return_type
             .as_ref()
-            .and_then(|ret| parse_str::<syn::Type>(ret).ok());
+            .map(|ret| parse_str::<syn::Type>(ret).map_err(|e| e.to_string()))
+            .transpose()?;
 
-        let return_tokens = if let Some(ret_ty) = return_type {
-            quote! { - #ret_ty }
+        if let Some(ret_ty) = return_type {
+            quote! { -> #ret_ty }
         } else {
             quote! {}
-        };
+        }
+    };
 
-        let call_args: TokenStream2 =
-            Itertools::intersperse(arg_names.iter().map(|name| quote! { #name }), quote! { , })
-                .collect();
+    let test_quote = quote! {
+        pub fn #method_name(&mut self , #typed_args) #return_tokens {
+            #qualified_trait_name :: #method_name(self.#self_function(), #call_args)
+        }
+    };
+    dbg!(test_quote.to_string());
 
-        let self_function_str = impl_block.self_function.clone();
-        let self_function: TokenStream2 =
-            parse_str(&self_function_str).map_err(|e| e.to_string())?;
+    dbg!(&method_name);
+    let impl_item_fn: ImplItemFn = syn::parse_quote! {
+        pub fn #method_name(&mut self , #typed_args) #return_tokens {
+            #qualified_trait_name :: #method_name (self.#self_function() , #call_args)
+        }
+    };
 
-        let test_quote = quote! {
-            pub fn #method_name(&mut self , #typed_args) #return_tokens {
-                #qualified_trait_name :: #method_name(self.#self_function(), #call_args)
-            }
-        };
-        dbg!(test_quote.to_string());
-
-        dbg!(&method_name);
-        let impl_item_fn: ImplItemFn = syn::parse_quote! {
-            pub fn #method_name(&mut self , #typed_args) #return_tokens {
-                #qualified_trait_name :: #method_name (self.#self_function() , #call_args)
-            }
-        };
-
-        Ok(impl_item_fn)
-    } else {
-        todo!()
-    }
+    Ok(impl_item_fn)
 }
 
 #[proc_macro_attribute]
-#[allow(clippy::too_many_lines)]
 pub fn add_trait_methods(attr: TokenStream, token_stream: TokenStream) -> TokenStream {
     let added_traits = match validate_selected_traits(attr) {
         Ok(t) => t,
@@ -194,8 +191,6 @@ pub fn add_trait_methods(attr: TokenStream, token_stream: TokenStream) -> TokenS
             .into();
         }
     };
-
-    let mut input = parse_macro_input!(token_stream as ItemImpl);
 
     let file = match std::fs::File::open("py-combinator/target/iterator_methods.json") {
         Ok(f) => f,
@@ -208,7 +203,7 @@ pub fn add_trait_methods(attr: TokenStream, token_stream: TokenStream) -> TokenS
         }
     };
 
-    let deserialized: Vec<ImplBlock> = match serde_json::from_reader(file) {
+    let trait_to_impl_block = match match serde_json::from_reader::<_, Vec<ImplBlock>>(file) {
         Ok(d) => d,
         Err(ser_e) => {
             let e = format!("Couldn't deserialize from methods file ({ser_e})",);
@@ -217,11 +212,34 @@ pub fn add_trait_methods(attr: TokenStream, token_stream: TokenStream) -> TokenS
             }
             .into();
         }
+    }
+    .into_iter()
+    .map(|ib| match ib.name.last() {
+        Some(name) => Ok((name.clone(), ib)),
+        None => Err("Impl block with empty name".to_string()),
+    })
+    .collect::<Result<BTreeMap<_, _>, _>>()
+    {
+        Ok(map) => map,
+        Err(e) => {
+            return quote! {
+                compile_error!(#e);
+            }
+            .into();
+        }
     };
 
-    for impl_block in deserialized {
+    let mut input = parse_macro_input!(token_stream as ItemImpl);
+    dbg!(&added_traits);
+
+    for trait_name in &added_traits {
+        let impl_block = trait_to_impl_block.get(trait_name).unwrap();
         for method in &impl_block.methods {
-            let impl_item = match method_into_impl_item(method, &impl_block) {
+            if method.name == impl_block.self_function {
+                continue;
+            }
+
+            let impl_item = match method_into_impl_item(method, impl_block) {
                 Ok(ii) => ii,
                 Err(e) => {
                     let e = format!("Couldn't parse method ({e})",);

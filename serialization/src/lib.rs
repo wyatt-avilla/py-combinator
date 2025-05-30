@@ -8,7 +8,8 @@ mod method;
 mod self_function;
 mod self_generic;
 
-pub use impl_block::ImplBlock;
+pub use attr_list::{AttributeArg, AttributeArgsList};
+pub use impl_block::{ImplBlock, ImplBlockParseError};
 pub use method::Method;
 
 pub const REGISTER_METHODS_ATTRIBUTE: &str = "register_methods";
