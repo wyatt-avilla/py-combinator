@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use syn::parse::{Parse, ParseStream, Result as ParseResult};
 use syn::punctuated::Punctuated;
 use syn::{Ident, Token};
@@ -23,9 +25,9 @@ pub struct Arg {
     pub value: Ident,
 }
 
-impl ToString for Arg {
-    fn to_string(&self) -> String {
-        self.value.to_string()
+impl Display for Arg {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.value)
     }
 }
 
