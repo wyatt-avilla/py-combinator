@@ -2,13 +2,11 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use itertools::Itertools;
 use proc_macro::TokenStream;
-use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
-use syn::{Ident, ImplItem, ImplItemFn, ItemImpl, parse_macro_input, parse_str};
+use syn::{ImplItem, ItemImpl, parse_macro_input};
 
-use serialization::{ImplBlock, Method, SELF_GENERIC_ATTRIBUTE};
+use serialization::{ImplBlock, SELF_GENERIC_ATTRIBUTE};
 
 #[proc_macro_attribute]
 pub fn register_methods(attr: TokenStream, token_stream: TokenStream) -> TokenStream {
@@ -108,78 +106,6 @@ pub fn method_self_arg(_attr: TokenStream, token_stream: TokenStream) -> TokenSt
     token_stream
 }
 
-fn method_into_impl_item(method: &Method, impl_block: &ImplBlock) -> Result<ImplItemFn, String> {
-    let qualified_trait_name =
-        parse_str::<syn::Path>(impl_block.nice_name().as_ref()).map_err(|e| e.to_string())?;
-
-    let method_name = parse_str::<Ident>(&method.name).map_err(|e| e.to_string())?;
-    let arg_names: Vec<Ident> = method
-        .args
-        .iter()
-        .filter_map(|a| {
-            if a.expected_type == impl_block.self_generic {
-                None
-            } else {
-                Some(parse_str::<Ident>(&a.name))
-            }
-        })
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| e.to_string())?;
-
-    let typed_args: TokenStream2 = Itertools::intersperse(
-        method
-            .args
-            .iter()
-            .filter(|arg| arg.expected_type != impl_block.self_generic)
-            .map(|arg| {
-                let name = parse_str::<Ident>(&arg.name).map_err(|e| e.to_string())?;
-                let ty = parse_str::<syn::Type>(&arg.expected_type).map_err(|e| e.to_string())?;
-                Ok(quote! { #name: #ty })
-            })
-            .collect::<Result<Vec<_>, String>>()?
-            .into_iter(),
-        quote! { , },
-    )
-    .collect();
-
-    let call_args: TokenStream2 =
-        Itertools::intersperse(arg_names.iter().map(|name| quote! { #name }), quote! { , })
-            .collect();
-
-    let self_function: TokenStream2 =
-        parse_str(&impl_block.self_function.clone()).map_err(|e| e.to_string())?;
-
-    let return_tokens: TokenStream2 = {
-        let return_type = method
-            .return_type
-            .as_ref()
-            .map(|ret| parse_str::<syn::Type>(ret).map_err(|e| e.to_string()))
-            .transpose()?;
-
-        if let Some(ret_ty) = return_type {
-            quote! { -> #ret_ty }
-        } else {
-            quote! {}
-        }
-    };
-
-    let test_quote = quote! {
-        pub fn #method_name(&mut self , #typed_args) #return_tokens {
-            #qualified_trait_name :: #method_name(self.#self_function(), #call_args)
-        }
-    };
-    dbg!(test_quote.to_string());
-
-    dbg!(&method_name);
-    let impl_item_fn: ImplItemFn = syn::parse_quote! {
-        pub fn #method_name(&mut self , #typed_args) #return_tokens {
-            #qualified_trait_name :: #method_name (self.#self_function() , #call_args)
-        }
-    };
-
-    Ok(impl_item_fn)
-}
-
 #[proc_macro_attribute]
 pub fn add_trait_methods(attr: TokenStream, token_stream: TokenStream) -> TokenStream {
     let added_traits = match validate_selected_traits(attr) {
@@ -230,7 +156,6 @@ pub fn add_trait_methods(attr: TokenStream, token_stream: TokenStream) -> TokenS
     };
 
     let mut input = parse_macro_input!(token_stream as ItemImpl);
-    dbg!(&added_traits);
 
     for trait_name in &added_traits {
         let impl_block = trait_to_impl_block.get(trait_name).unwrap();
@@ -239,7 +164,7 @@ pub fn add_trait_methods(attr: TokenStream, token_stream: TokenStream) -> TokenS
                 continue;
             }
 
-            let impl_item = match method_into_impl_item(method, impl_block) {
+            let impl_item = match method.into_impl_item(impl_block) {
                 Ok(ii) => ii,
                 Err(e) => {
                     let e = format!("Couldn't parse method ({e})",);
