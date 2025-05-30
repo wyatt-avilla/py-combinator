@@ -45,21 +45,40 @@ fn typed_args_from(
     args: &[Argument],
     impl_block: &ImplBlock,
 ) -> Result<TokenStream2, MethodDeserializeError> {
-    Ok(Itertools::intersperse(
-        args.iter()
-            .filter(|arg| arg.expected_type != impl_block.self_generic)
-            .map(|arg| {
-                let name = parse_str::<Ident>(&arg.name)
-                    .map_err(|e| MethodDeserializeError::NameParseError(e.to_string()))?;
-                let ty = parse_str::<syn::Type>(&arg.expected_type)
-                    .map_err(|e| MethodDeserializeError::ArgTypeParseError(e.to_string()))?;
-                Ok(quote! { #name: #ty })
-            })
-            .collect::<Result<Vec<_>, _>>()?
-            .into_iter(),
-        quote! { , },
-    )
-    .collect())
+    let typed_args = args
+        .iter()
+        .filter(|arg| arg.expected_type != impl_block.self_generic)
+        .map(|arg| {
+            let name = parse_str::<Ident>(&arg.name)
+                .map_err(|e| MethodDeserializeError::NameParseError(e.to_string()))?;
+            let ty = parse_str::<syn::Type>(&arg.expected_type)
+                .map_err(|e| MethodDeserializeError::ArgTypeParseError(e.to_string()))?;
+            Ok(quote! { #name: #ty })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+
+    if args.len() == 1 {
+        Ok(typed_args.into_iter().collect())
+    } else {
+        Ok([quote! { , }]
+            .into_iter()
+            .chain(Itertools::intersperse(typed_args.into_iter(), quote! { , }))
+            .collect())
+    }
+}
+
+fn call_args_from(arg_names: &[Ident]) -> TokenStream2 {
+    if arg_names.is_empty() {
+        quote! {}
+    } else {
+        [quote! { , }]
+            .into_iter()
+            .chain(Itertools::intersperse(
+                arg_names.iter().map(|name| quote! { #name }),
+                quote! { , },
+            ))
+            .collect()
+    }
 }
 
 fn return_tokens_from(
@@ -110,9 +129,7 @@ impl Method {
 
         let arg_names = arg_names_from(&self.args, impl_block)?;
         let typed_args = typed_args_from(&self.args, impl_block)?;
-        let call_args: TokenStream2 =
-            Itertools::intersperse(arg_names.iter().map(|name| quote! { #name }), quote! { , })
-                .collect();
+        let call_args = call_args_from(&arg_names);
 
         let self_function: TokenStream2 = parse_str(&impl_block.self_function.clone())
             .map_err(|e| MethodDeserializeError::TokenStreamParseError(e.to_string()))?;
@@ -120,16 +137,16 @@ impl Method {
         let return_tokens = return_tokens_from(self, impl_block)?;
 
         let test_quote = quote! {
-            pub fn #self_name(&mut self , #typed_args) #return_tokens {
-                #qualified_trait_name :: #self_name(self.#self_function(), #call_args)
+            pub fn #self_name(&mut self #typed_args) #return_tokens {
+                #qualified_trait_name :: #self_name(self.#self_function() #call_args)
             }
         };
         dbg!(test_quote.to_string());
 
         dbg!(&self_name);
         let impl_item_fn: ImplItemFn = syn::parse_quote! {
-            pub fn #self_name(&mut self , #typed_args) #return_tokens {
-                #qualified_trait_name :: #self_name (self.#self_function() , #call_args)
+            pub fn #self_name(&mut self #typed_args) #return_tokens {
+                #qualified_trait_name :: #self_name (self.#self_function() #call_args)
             }
         };
 
