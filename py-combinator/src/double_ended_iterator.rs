@@ -28,7 +28,7 @@ impl crate::double_ended_iterator::PyDoubleEndedIterator {
     }
 }
 
-#[macros::add_trait_methods(PyBaseIterator)]
+#[macros::add_trait_methods((PyBaseIterator, exclude=(take, enumerate)))]
 #[pymethods]
 impl PyDoubleEndedIterator {
     pub fn valid_take_implementation(&mut self, n: usize) -> Self {

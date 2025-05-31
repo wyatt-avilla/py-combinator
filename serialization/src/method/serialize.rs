@@ -70,7 +70,7 @@ impl Method {
                                     .into_iter()
                                     .filter_map(|arg| match arg {
                                         AttributeArg::Arg(arg) => Some(arg.to_string()),
-                                        AttributeArg::KeyValueArg(_) => None,
+                                        _ => None,
                                     })
                                     .collect_vec()
                             })

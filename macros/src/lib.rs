@@ -7,8 +7,8 @@ use quote::quote;
 use syn::{ImplItem, ItemImpl, parse_macro_input};
 
 use serialization::{
-    ImplBlock, PY_BASE_ITERATOR, PY_DOUBLE_ENDED_ITERATOR, PY_EXACT_SIZE_ITERATOR,
-    SELF_GENERIC_ATTRIBUTE,
+    AttributeArg, AttributeArgsList, ImplBlock, PY_BASE_ITERATOR, PY_DOUBLE_ENDED_ITERATOR,
+    PY_EXACT_SIZE_ITERATOR, SELF_GENERIC_ATTRIBUTE,
 };
 
 #[proc_macro_attribute]
@@ -55,23 +55,31 @@ pub fn register_methods(attr: TokenStream, token_stream: TokenStream) -> TokenSt
     unchanged
 }
 
-fn validate_selected_traits(attr: TokenStream) -> Result<BTreeSet<String>, String> {
+fn validate_selected_traits(attr: &TokenStream) -> Result<BTreeSet<String>, String> {
     let allowed_traits = BTreeSet::from([
         String::from(PY_BASE_ITERATOR),
         String::from(PY_DOUBLE_ENDED_ITERATOR),
         String::from(PY_EXACT_SIZE_ITERATOR),
     ]);
 
-    let selected_traits = attr
+    let selected_traits: BTreeSet<_> = syn::parse2::<AttributeArgsList>(attr.clone().into())
+        .map_err(|e| e.to_string())?
+        .0
         .into_iter()
-        .filter_map(|tt| {
-            if let proc_macro::TokenTree::Ident(i) = tt {
-                Some(i.to_string())
-            } else {
-                None
-            }
+        .filter_map(|aa| match aa {
+            AttributeArg::Arg(a) => Some(a),
+            AttributeArg::Group(g) => match g.content.0.first() {
+                Some(AttributeArg::Arg(a)) => Some(a.clone()),
+                _ => None,
+            },
+            AttributeArg::KeyValueArg(_) => None,
         })
-        .collect::<BTreeSet<_>>();
+        .map(|a| a.to_string())
+        .collect();
+
+    if selected_traits.is_empty() {
+        return Err("Empty trait list".to_string());
+    }
 
     if selected_traits.is_subset(&allowed_traits) {
         Ok(selected_traits)
@@ -86,7 +94,7 @@ fn validate_selected_traits(attr: TokenStream) -> Result<BTreeSet<String>, Strin
 pub fn strips_traits(attr: TokenStream, token_stream: TokenStream) -> TokenStream {
     let unchanged = token_stream.clone();
 
-    match validate_selected_traits(attr) {
+    match validate_selected_traits(&attr) {
         Ok(_) => {}
         Err(e) => {
             return quote! {
@@ -111,7 +119,7 @@ pub fn method_self_arg(_attr: TokenStream, token_stream: TokenStream) -> TokenSt
 
 #[proc_macro_attribute]
 pub fn add_trait_methods(attr: TokenStream, token_stream: TokenStream) -> TokenStream {
-    let added_traits = match validate_selected_traits(attr) {
+    let added_traits = match validate_selected_traits(&attr) {
         Ok(t) => t,
         Err(e) => {
             return quote! {
