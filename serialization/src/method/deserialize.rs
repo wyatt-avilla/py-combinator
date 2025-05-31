@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use itertools::Itertools;
 use syn::{Ident, ImplItemFn, parse_str};
 
@@ -5,7 +7,10 @@ use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 use thiserror::Error;
 
-use crate::{ImplBlock, Method, method::Argument};
+use crate::{
+    ImplBlock, Method, PY_BASE_ITERATOR, PY_DOUBLE_ENDED_ITERATOR, PY_EXACT_SIZE_ITERATOR,
+    PY_SIZED_DOUBLE_ENDED_ITERATOR, method::Argument,
+};
 
 #[derive(Debug, Error)]
 pub enum MethodDeserializeError {
@@ -23,6 +28,9 @@ pub enum MethodDeserializeError {
 
     #[error("Couldn't parse into `TokenStream`")]
     TokenStreamParseError(String),
+
+    #[error("Invalid iterator name")]
+    InvalidIteratorName,
 }
 
 fn arg_names_from(
@@ -94,23 +102,63 @@ fn return_tokens_from(
                     .map_err(|e| MethodDeserializeError::ArgTypeParseError(e.to_string()))
             })
             .transpose()?
+    } else if method.strips.is_empty() {
+        Some(
+            parse_str::<syn::Type>("Self")
+                .map_err(|e| MethodDeserializeError::ArgTypeParseError(e.to_string()))?,
+        )
     } else {
-        if method.strips.is_empty() {
-            Some(
-                parse_str::<syn::Type>("Self")
-                    .map_err(|e| MethodDeserializeError::ArgTypeParseError(e.to_string()))?,
+        let impl_name = impl_block
+            .name
+            .last()
+            .ok_or(MethodDeserializeError::EmptyField)?;
+
+        let trait_map: HashMap<_, Vec<_>> = [
+            (PY_BASE_ITERATOR, vec![]),
+            (
+                PY_DOUBLE_ENDED_ITERATOR,
+                vec![PY_BASE_ITERATOR, PY_DOUBLE_ENDED_ITERATOR],
+            ),
+            (
+                PY_EXACT_SIZE_ITERATOR,
+                vec![PY_BASE_ITERATOR, PY_EXACT_SIZE_ITERATOR],
+            ),
+            (
+                PY_SIZED_DOUBLE_ENDED_ITERATOR,
+                vec![
+                    PY_BASE_ITERATOR,
+                    PY_EXACT_SIZE_ITERATOR,
+                    PY_DOUBLE_ENDED_ITERATOR,
+                ],
+            ),
+        ]
+        .into_iter()
+        .collect();
+
+        let available_traits = trait_map
+            .get(impl_name.as_str())
+            .ok_or(MethodDeserializeError::InvalidIteratorName)?;
+
+        let remaining_traits = available_traits
+            .iter()
+            .filter(|&&t| !method.strips.contains(&t.to_string()))
+            .copied()
+            .collect_vec();
+
+        Some(
+            parse_str::<syn::Type>(
+                &remaining_traits
+                    .last()
+                    .map_or(format!("crate::iterators::{PY_BASE_ITERATOR}"), |rt| {
+                        format!("crate::iterators:: {rt}")
+                    }),
             )
-        } else {
-            let impl_name = impl_block
-                .name
-                .last()
-                .ok_or(MethodDeserializeError::EmptyField)?;
-            todo!()
-        }
+            .map_err(|e| MethodDeserializeError::ArgTypeParseError(e.to_string()))?,
+        )
     };
 
     if let Some(ret_ty) = return_type {
-        Ok(quote! { -> #ret_ty })
+        Ok(quote! { #ret_ty })
     } else {
         Ok(quote! {})
     }
@@ -134,19 +182,46 @@ impl Method {
         let self_function: TokenStream2 = parse_str(&impl_block.self_function.clone())
             .map_err(|e| MethodDeserializeError::TokenStreamParseError(e.to_string()))?;
 
-        let return_tokens = return_tokens_from(self, impl_block)?;
+        let return_type = return_tokens_from(self, impl_block)?;
 
-        let test_quote = quote! {
-            pub fn #self_name(&mut self #typed_args) #return_tokens {
-                #qualified_trait_name :: #self_name(self.#self_function() #call_args)
+        let test_quote = if self.literal_return {
+            quote! {
+                pub fn #self_name(&mut self #typed_args) -> #return_type {
+                    #qualified_trait_name :: #self_name (self.#self_function() #call_args)
+                }
+            }
+        } else if return_type.is_empty() {
+            quote! {
+                pub fn #self_name(&mut self #typed_args) {
+                    ::std::boxed::Box::new ( #qualified_trait_name :: #self_name (self.#self_function() #call_args) )
+                }
+            }
+        } else {
+            quote! {
+                pub fn #self_name(&mut self #typed_args) -> #return_type {
+                    #return_type ::new( ::std::boxed::Box::new ( #qualified_trait_name :: #self_name (self.#self_function() #call_args) ) )
+                }
             }
         };
         dbg!(test_quote.to_string());
 
-        dbg!(&self_name);
-        let impl_item_fn: ImplItemFn = syn::parse_quote! {
-            pub fn #self_name(&mut self #typed_args) #return_tokens {
-                #qualified_trait_name :: #self_name (self.#self_function() #call_args)
+        let impl_item_fn: ImplItemFn = if self.literal_return {
+            syn::parse_quote! {
+                pub fn #self_name(&mut self #typed_args) -> #return_type {
+                    #qualified_trait_name :: #self_name (self.#self_function() #call_args)
+                }
+            }
+        } else if return_type.is_empty() {
+            syn::parse_quote! {
+                pub fn #self_name(&mut self #typed_args) {
+                    ::std::boxed::Box::new ( #qualified_trait_name :: #self_name (self.#self_function() #call_args) )
+                }
+            }
+        } else {
+            syn::parse_quote! {
+                pub fn #self_name(&mut self #typed_args) -> #return_type {
+                    #return_type ::new( ::std::boxed::Box::new ( #qualified_trait_name :: #self_name (self.#self_function() #call_args) ) )
+                }
             }
         };
 

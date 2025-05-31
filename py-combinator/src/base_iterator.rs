@@ -43,9 +43,23 @@ impl crate::base_iterator::PyBaseIterator {
             iter.try_fold(init, |a, x| x.and_then(|x| f.call1(py, (&a, x))))
         })
     }
-}
 
-impl crate::base_iterator::PyBaseIterator {
+    #[allow(clippy::type_complexity)]
+    pub fn map<S>(
+        iter: S,
+        f: pyo3::Py<pyo3::types::PyFunction>,
+    ) -> std::iter::Map<
+        S,
+        impl FnMut(
+            pyo3::PyResult<pyo3::Py<pyo3::types::PyAny>>,
+        ) -> pyo3::PyResult<pyo3::Py<pyo3::types::PyAny>>,
+    >
+    where
+        S: Iterator<Item = pyo3::PyResult<pyo3::Py<pyo3::types::PyAny>>>,
+    {
+        iter.map(move |x| pyo3::Python::with_gil(|py| x.and_then(|x| f.call1(py, (x.bind(py),)))))
+    }
+
     #[macros::strips_traits(PyExactSizeIterator)]
     pub fn filter<S>(
         iter: S,
@@ -70,21 +84,14 @@ impl crate::base_iterator::PyBaseIterator {
             })
         })
     }
+}
 
-    #[allow(clippy::type_complexity)]
-    pub fn map<S>(
-        iter: S,
-        f: pyo3::Py<pyo3::types::PyFunction>,
-    ) -> std::iter::Map<
-        S,
-        impl FnMut(
-            pyo3::PyResult<pyo3::Py<pyo3::types::PyAny>>,
-        ) -> pyo3::PyResult<pyo3::Py<pyo3::types::PyAny>>,
-    >
+impl crate::base_iterator::PyBaseIterator {
+    pub fn take<S>(iter: S, n: usize) -> std::iter::Take<S>
     where
         S: Iterator<Item = pyo3::PyResult<pyo3::Py<pyo3::types::PyAny>>>,
     {
-        iter.map(move |x| pyo3::Python::with_gil(|py| x.and_then(|x| f.call1(py, (x.bind(py),)))))
+        iter.take(n)
     }
 
     #[allow(clippy::type_complexity)]
@@ -102,12 +109,5 @@ impl crate::base_iterator::PyBaseIterator {
         use pyo3::IntoPyObjectExt;
         iter.enumerate()
             .map(move |(i, x)| pyo3::Python::with_gil(|py| x.and_then(|x| (i, x).into_py_any(py))))
-    }
-
-    pub fn take<S>(iter: S, n: usize) -> std::iter::Take<S>
-    where
-        S: Iterator<Item = pyo3::PyResult<pyo3::Py<pyo3::types::PyAny>>>,
-    {
-        iter.take(n)
     }
 }
