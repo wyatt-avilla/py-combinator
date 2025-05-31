@@ -78,29 +78,23 @@ impl ImplBlock {
                 ImplItem::Fn(f) => Some(f.clone()),
                 _ => None,
             })
-            .filter_map(|item_fn| {
-                let path_attr =
-                    item_fn
-                        .attrs
-                        .clone()
-                        .first()
-                        .cloned()
-                        .and_then(|a| match a.meta.clone() {
-                            Meta::Path(p) => Some((p.segments, a)),
-                            Meta::List(l) => Some((l.path.segments, a)),
-                            Meta::NameValue(_) => None,
-                        });
-
-                match path_attr {
-                    Some((p, attr)) => {
+            .flat_map(|item_fn| {
+                item_fn
+                    .attrs
+                    .clone()
+                    .into_iter()
+                    .filter_map(|a| match a.meta.clone() {
+                        Meta::Path(p) => Some((p.segments, a)),
+                        Meta::List(l) => Some((l.path.segments, a)),
+                        Meta::NameValue(_) => None,
+                    })
+                    .filter_map(move |(p, attr)| {
                         if p.into_iter().map(|p| p.ident).any(|i| i == attr_query) {
-                            Some((item_fn, attr))
+                            Some((item_fn.clone(), attr))
                         } else {
                             None
                         }
-                    }
-                    None => None,
-                }
+                    })
             })
             .collect()
     }
