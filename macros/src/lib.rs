@@ -6,7 +6,10 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{ImplItem, ItemImpl, parse_macro_input};
 
-use serialization::{ImplBlock, SELF_GENERIC_ATTRIBUTE};
+use serialization::{
+    ImplBlock, PY_BASE_ITERATOR, PY_DOUBLE_ENDED_ITERATOR, PY_EXACT_SIZE_ITERATOR,
+    SELF_GENERIC_ATTRIBUTE,
+};
 
 #[proc_macro_attribute]
 pub fn register_methods(attr: TokenStream, token_stream: TokenStream) -> TokenStream {
@@ -54,9 +57,9 @@ pub fn register_methods(attr: TokenStream, token_stream: TokenStream) -> TokenSt
 
 fn validate_selected_traits(attr: TokenStream) -> Result<BTreeSet<String>, String> {
     let allowed_traits = BTreeSet::from([
-        String::from("PyBaseIterator"),
-        String::from("PyDoubleEndedIterator"),
-        String::from("PyExactSizeIterator"),
+        String::from(PY_BASE_ITERATOR),
+        String::from(PY_DOUBLE_ENDED_ITERATOR),
+        String::from(PY_EXACT_SIZE_ITERATOR),
     ]);
 
     let selected_traits = attr
