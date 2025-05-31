@@ -184,27 +184,6 @@ impl Method {
 
         let return_type = return_tokens_from(self, impl_block)?;
 
-        let test_quote = if self.literal_return {
-            quote! {
-                pub fn #self_name(&mut self #typed_args) -> #return_type {
-                    #qualified_trait_name :: #self_name (self.#self_function() #call_args)
-                }
-            }
-        } else if return_type.is_empty() {
-            quote! {
-                pub fn #self_name(&mut self #typed_args) {
-                    ::std::boxed::Box::new ( #qualified_trait_name :: #self_name (self.#self_function() #call_args) )
-                }
-            }
-        } else {
-            quote! {
-                pub fn #self_name(&mut self #typed_args) -> #return_type {
-                    #return_type ::new( ::std::boxed::Box::new ( #qualified_trait_name :: #self_name (self.#self_function() #call_args) ) )
-                }
-            }
-        };
-        dbg!(test_quote.to_string());
-
         let impl_item_fn: ImplItemFn = if self.literal_return {
             syn::parse_quote! {
                 pub fn #self_name(&mut self #typed_args) -> #return_type {

@@ -7,8 +7,8 @@ use quote::quote;
 use syn::{ImplItem, ItemImpl, parse_macro_input};
 
 use serialization::{
-    AttributeArg, AttributeArgsList, ImplBlock, PY_BASE_ITERATOR, PY_DOUBLE_ENDED_ITERATOR,
-    PY_EXACT_SIZE_ITERATOR, SELF_GENERIC_ATTRIBUTE,
+    AttributeArg, AttributeArgsList, AttributeValue, EXCLUDE_ATTRIBUTE, ImplBlock,
+    PY_BASE_ITERATOR, PY_DOUBLE_ENDED_ITERATOR, PY_EXACT_SIZE_ITERATOR, SELF_GENERIC_ATTRIBUTE,
 };
 
 #[proc_macro_attribute]
@@ -117,6 +117,47 @@ pub fn method_self_arg(_attr: TokenStream, token_stream: TokenStream) -> TokenSt
     token_stream
 }
 
+fn parse_excluded_methods(attr: proc_macro2::TokenStream) -> Result<BTreeSet<String>, String> {
+    let excluded_methods = syn::parse2::<AttributeArgsList>(attr)
+        .map_err(|e| e.to_string())?
+        .0
+        .into_iter()
+        .filter_map(|a| match a {
+            AttributeArg::Group(g) => g.content.0.into_iter().nth(1),
+            _ => None,
+        })
+        .filter_map(|a| {
+            if let AttributeArg::KeyValueArg(kv) = a {
+                Some(kv)
+            } else {
+                None
+            }
+        })
+        .find_map(|kv| {
+            if kv.key == EXCLUDE_ATTRIBUTE {
+                Some(kv.value)
+            } else {
+                None
+            }
+        });
+
+    let malformed = "Malformed exclude group";
+
+    match excluded_methods {
+        Some(AttributeValue::Group(g)) => g
+            .content
+            .0
+            .into_iter()
+            .map(|a| match a {
+                AttributeArg::Arg(a) => Ok(a.to_string()),
+                _ => Err(malformed.to_string()),
+            })
+            .collect(),
+        None => Ok(BTreeSet::new()),
+        _ => Err(malformed.to_string()),
+    }
+}
+
 #[proc_macro_attribute]
 pub fn add_trait_methods(attr: TokenStream, token_stream: TokenStream) -> TokenStream {
     let added_traits = match validate_selected_traits(&attr) {
@@ -129,6 +170,7 @@ pub fn add_trait_methods(attr: TokenStream, token_stream: TokenStream) -> TokenS
         }
     };
 
+    // TODO: path
     let file = match std::fs::File::open("py-combinator/target/iterator_methods.json") {
         Ok(f) => f,
         Err(fs_e) => {
@@ -168,10 +210,20 @@ pub fn add_trait_methods(attr: TokenStream, token_stream: TokenStream) -> TokenS
 
     let mut input = parse_macro_input!(token_stream as ItemImpl);
 
+    let excluded_methods = match parse_excluded_methods(attr.into()) {
+        Ok(em) => em,
+        Err(e) => {
+            return quote! {
+                compile_error!(#e);
+            }
+            .into();
+        }
+    };
+
     for trait_name in &added_traits {
         let impl_block = trait_to_impl_block.get(trait_name).unwrap();
         for method in &impl_block.methods {
-            if method.name == impl_block.self_function {
+            if method.name == impl_block.self_function || excluded_methods.contains(&method.name) {
                 continue;
             }
 

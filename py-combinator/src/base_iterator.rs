@@ -84,9 +84,7 @@ impl crate::base_iterator::PyBaseIterator {
             })
         })
     }
-}
 
-impl crate::base_iterator::PyBaseIterator {
     pub fn take<S>(iter: S, n: usize) -> std::iter::Take<S>
     where
         S: Iterator<Item = pyo3::PyResult<pyo3::Py<pyo3::types::PyAny>>>,
