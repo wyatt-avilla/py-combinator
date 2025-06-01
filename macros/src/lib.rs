@@ -9,7 +9,7 @@ use syn::{ImplItem, ItemImpl, parse::Parser, parse_macro_input};
 use serialization::{
     AttributeArg, AttributeArgsList, AttributeValue, EXCLUDE_ATTRIBUTE, ImplBlock,
     PY_BASE_ITERATOR, PY_DOUBLE_ENDED_ITERATOR, PY_EXACT_SIZE_ITERATOR,
-    PY_SIZED_DOUBLE_ENDED_ITERATOR, SELF_GENERIC_ATTRIBUTE,
+    PY_SIZED_DOUBLE_ENDED_ITERATOR, REGISTER_METHODS_ATTRIBUTE, SELF_GENERIC_ATTRIBUTE,
 };
 
 #[proc_macro_attribute]
@@ -22,7 +22,7 @@ pub fn register_methods(attr: TokenStream, token_stream: TokenStream) -> TokenSt
         .is_none_or(|k| *k.to_string() != *SELF_GENERIC_ATTRIBUTE)
     {
         let e = format!(
-            "expected an assignment to `self_generic` (e.g #[register_methods({SELF_GENERIC_ATTRIBUTE} = S)])"
+            "expected an assignment to `{SELF_GENERIC_ATTRIBUTE}` (e.g #[{REGISTER_METHODS_ATTRIBUTE}({SELF_GENERIC_ATTRIBUTE} = S)])"
         );
         return quote! {
             compile_error!(#e);
