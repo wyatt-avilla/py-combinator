@@ -24,6 +24,11 @@ impl crate::sized_double_ended_iterator::PySizedDoubleEndedIterator {
     }
 }
 
-#[macros::add_trait_methods(PyBaseIterator, PyDoubleEndedIterator)]
+#[macros::add_trait_methods(
+    PySizedDoubleEndedIterator,
+    PyBaseIterator,
+    PyDoubleEndedIterator,
+    PyExactSizeIterator
+)]
 #[pymethods]
 impl PySizedDoubleEndedIterator {}

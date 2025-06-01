@@ -20,6 +20,6 @@ impl crate::exact_size_iterator::PyExactSizeIterator {
     }
 }
 
-#[macros::add_trait_methods(PyBaseIterator)]
+#[macros::add_trait_methods(PyExactSizeIterator, PyBaseIterator)]
 #[pymethods]
 impl PyExactSizeIterator {}

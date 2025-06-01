@@ -109,3 +109,7 @@ impl crate::base_iterator::PyBaseIterator {
             .map(move |(i, x)| pyo3::Python::with_gil(|py| x.and_then(|x| (i, x).into_py_any(py))))
     }
 }
+
+#[macros::add_trait_methods(PyBaseIterator)]
+#[pyo3::pymethods]
+impl PyBaseIterator {}

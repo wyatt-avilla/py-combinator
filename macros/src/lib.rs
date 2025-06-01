@@ -4,11 +4,12 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{ImplItem, ItemImpl, parse_macro_input};
+use syn::{ImplItem, ItemImpl, parse::Parser, parse_macro_input};
 
 use serialization::{
     AttributeArg, AttributeArgsList, AttributeValue, EXCLUDE_ATTRIBUTE, ImplBlock,
-    PY_BASE_ITERATOR, PY_DOUBLE_ENDED_ITERATOR, PY_EXACT_SIZE_ITERATOR, SELF_GENERIC_ATTRIBUTE,
+    PY_BASE_ITERATOR, PY_DOUBLE_ENDED_ITERATOR, PY_EXACT_SIZE_ITERATOR,
+    PY_SIZED_DOUBLE_ENDED_ITERATOR, SELF_GENERIC_ATTRIBUTE,
 };
 
 #[proc_macro_attribute]
@@ -60,6 +61,7 @@ fn validate_selected_traits(attr: &TokenStream) -> Result<BTreeSet<String>, Stri
         String::from(PY_BASE_ITERATOR),
         String::from(PY_DOUBLE_ENDED_ITERATOR),
         String::from(PY_EXACT_SIZE_ITERATOR),
+        String::from(PY_SIZED_DOUBLE_ENDED_ITERATOR),
     ]);
 
     let selected_traits: BTreeSet<_> = syn::parse2::<AttributeArgsList>(attr.clone().into())
@@ -159,6 +161,7 @@ fn parse_excluded_methods(attr: proc_macro2::TokenStream) -> Result<BTreeSet<Str
 }
 
 #[proc_macro_attribute]
+#[allow(clippy::too_many_lines)]
 pub fn add_trait_methods(attr: TokenStream, token_stream: TokenStream) -> TokenStream {
     let added_traits = match validate_selected_traits(&attr) {
         Ok(t) => t,
@@ -220,6 +223,18 @@ pub fn add_trait_methods(attr: TokenStream, token_stream: TokenStream) -> TokenS
         }
     };
 
+    let input_name = if let syn::Type::Path(p) = &*input.self_ty {
+        p.path.get_ident().map(std::string::ToString::to_string)
+    } else {
+        None
+    };
+    let Some(input_name) = input_name else {
+        return quote! {
+            compile_error!("Couldn't parse source for `impl` block");
+        }
+        .into();
+    };
+
     for trait_name in &added_traits {
         let impl_block = trait_to_impl_block.get(trait_name).unwrap();
         for method in &impl_block.methods {
@@ -227,7 +242,7 @@ pub fn add_trait_methods(attr: TokenStream, token_stream: TokenStream) -> TokenS
                 continue;
             }
 
-            let impl_item = match method.into_impl_item(impl_block) {
+            let mut impl_item = match method.into_impl_item(impl_block) {
                 Ok(ii) => ii,
                 Err(e) => {
                     let e = format!("Couldn't parse method ({e})",);
@@ -237,6 +252,34 @@ pub fn add_trait_methods(attr: TokenStream, token_stream: TokenStream) -> TokenS
                     .into();
                 }
             };
+
+            if impl_block.name.last().is_some_and(|n| *n == input_name) {
+                let rename_attr = match syn::Attribute::parse_outer
+                    .parse_str(format!("#[pyo3(name = \"{}\")]", impl_item.sig.ident).as_str())
+                {
+                    Ok(a) => a,
+                    Err(e) => {
+                        let e = format!("Couldn't inject rename attribute ({e})",);
+                        return quote! {
+                            compile_error!(#e);
+                        }
+                        .into();
+                    }
+                };
+                impl_item.attrs.extend(rename_attr);
+
+                impl_item.sig.ident =
+                    match syn::parse_str(format!("__{}", impl_item.sig.ident).as_str()) {
+                        Ok(i) => i,
+                        Err(e) => {
+                            let e = format!("Couldn't prepend `__` to method name ({e})");
+                            return quote! {
+                                compile_error!(#e);
+                            }
+                            .into();
+                        }
+                    };
+            }
 
             input.items.push(ImplItem::Fn(impl_item));
         }
