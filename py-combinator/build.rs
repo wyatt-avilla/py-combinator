@@ -1,5 +1,7 @@
 use itertools::{self, Itertools};
 use serialization::{ImplBlock, REGISTER_METHODS_ATTRIBUTE, SERIALIZED_METHODS_PATH};
+use std::fs;
+use std::path::Path;
 use syn::Item;
 use walkdir::WalkDir;
 
@@ -50,7 +52,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         impl_blocks.iter().map(ImplBlock::nice_name).join(", ")
     );
 
-    std::fs::write(
+    fs::create_dir_all(Path::new(SERIALIZED_METHODS_PATH).parent().unwrap()).unwrap();
+    fs::write(
         SERIALIZED_METHODS_PATH,
         serde_json::to_string_pretty(&impl_blocks).unwrap(),
     )
