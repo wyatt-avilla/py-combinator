@@ -43,6 +43,7 @@
           buildInputs = [
             rustToolchain
             pkgs.cargo-watch
+            pkgs.cargo-expand
             pkgs.rust-analyzer
             pythonEnv
             pkgs.maturin

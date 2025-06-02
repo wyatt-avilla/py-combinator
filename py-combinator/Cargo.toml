@@ -1,0 +1,23 @@
+[package]
+name = "py_combinator"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "py_combinator"
+crate-type = ["cdylib"]
+
+[dependencies]
+macros = { path = "../macros" }
+itertools = "0.14.0"
+pyo3 = "0.24.0"
+
+[build-dependencies]
+serialization = { path = "../serialization/" }
+syn = { version = "2", features = ["full", "extra-traits"] }
+itertools = "0.14.0"
+quote = "1"
+walkdir = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2.0.12"

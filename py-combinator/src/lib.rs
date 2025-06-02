@@ -6,6 +6,15 @@ mod exact_size_iterator;
 mod list_iterator;
 mod sized_double_ended_iterator;
 
+mod iterators {
+    #[allow(unused_imports)]
+    pub use crate::{
+        base_iterator::PyBaseIterator, double_ended_iterator::PyDoubleEndedIterator,
+        exact_size_iterator::PyExactSizeIterator,
+        sized_double_ended_iterator::PySizedDoubleEndedIterator,
+    };
+}
+
 use pyo3::{IntoPyObjectExt, exceptions::PyTypeError, prelude::*, types::PyList};
 
 #[pyfunction]

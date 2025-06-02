@@ -1,4 +1,4 @@
-/target
-/.venv
+**/target
+**/.venv
 **/__pycache__
-*.so
+**.so
