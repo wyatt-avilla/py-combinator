@@ -21,4 +21,6 @@ jobs:
       - name: Build
         run: nix shell nixpkgs#maturin -c maturin develop
       - name: Pytest
-        run: nix shell nixpkgs#python312Packages.pytest -c pytest
+        run: |
+          cd py-combinator
+          nix shell nixpkgs#python312Packages.pytest -c pytest
