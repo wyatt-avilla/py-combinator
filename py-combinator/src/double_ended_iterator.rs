@@ -28,6 +28,12 @@ impl crate::double_ended_iterator::PyDoubleEndedIterator {
     }
 }
 
-#[macros::add_trait_methods(PyDoubleEndedIterator, (PyBaseIterator, exclude=(take, enumerate)))]
+#[macros::add_trait_methods(PyDoubleEndedIterator, (PyBaseIterator, exclude=(enumerate)))]
 #[pymethods]
-impl PyDoubleEndedIterator {}
+impl PyDoubleEndedIterator {
+    pub fn take(&mut self, n: usize) -> Self {
+        Self::new(Box::new(
+            self.iter.by_ref().take(n).collect::<Vec<_>>().into_iter(),
+        ))
+    }
+}

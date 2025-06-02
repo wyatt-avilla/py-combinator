@@ -22,4 +22,10 @@ impl crate::exact_size_iterator::PyExactSizeIterator {
 
 #[macros::add_trait_methods(PyExactSizeIterator, PyBaseIterator)]
 #[pymethods]
-impl PyExactSizeIterator {}
+impl PyExactSizeIterator {
+    pub fn take(&mut self, n: usize) -> Self {
+        Self::new(Box::new(
+            self.iter.by_ref().take(n).collect::<Vec<_>>().into_iter(),
+        ))
+    }
+}

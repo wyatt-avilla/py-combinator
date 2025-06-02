@@ -85,13 +85,6 @@ impl crate::base_iterator::PyBaseIterator {
         })
     }
 
-    pub fn take<S>(iter: S, n: usize) -> std::iter::Take<S>
-    where
-        S: Iterator<Item = pyo3::PyResult<pyo3::Py<pyo3::types::PyAny>>>,
-    {
-        iter.take(n)
-    }
-
     #[allow(clippy::type_complexity)]
     pub fn enumerate<S>(
         iter: S,
@@ -112,4 +105,10 @@ impl crate::base_iterator::PyBaseIterator {
 
 #[macros::add_trait_methods(PyBaseIterator)]
 #[pyo3::pymethods]
-impl PyBaseIterator {}
+impl PyBaseIterator {
+    pub fn take(&mut self, n: usize) -> Self {
+        Self::new(Box::new(
+            self.iter.by_ref().take(n).collect::<Vec<_>>().into_iter(),
+        ))
+    }
+}
