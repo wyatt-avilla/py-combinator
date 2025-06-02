@@ -19,7 +19,9 @@ jobs:
           python -m venv .venv
           source .venv/bin/activate
       - name: Build
-        run: nix shell nixpkgs#maturin -c maturin develop
+        run: |
+          cd py-combinator
+          nix shell nixpkgs#maturin -c maturin develop
       - name: Pytest
         run: |
           cd py-combinator
