@@ -52,9 +52,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         impl_blocks.iter().map(ImplBlock::nice_name).join(", ")
     );
 
-    fs::create_dir_all(Path::new(SERIALIZED_METHODS_PATH).parent().unwrap()).unwrap();
+    let method_path_str = format!("../{SERIALIZED_METHODS_PATH}");
+    fs::create_dir_all(Path::new(&method_path_str).parent().unwrap()).unwrap();
     fs::write(
-        SERIALIZED_METHODS_PATH,
+        method_path_str,
         serde_json::to_string_pretty(&impl_blocks).unwrap(),
     )
     .unwrap();

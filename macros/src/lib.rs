@@ -10,6 +10,7 @@ use serialization::{
     AttributeArg, AttributeArgsList, AttributeValue, EXCLUDE_ATTRIBUTE, ImplBlock,
     PY_BASE_ITERATOR, PY_DOUBLE_ENDED_ITERATOR, PY_EXACT_SIZE_ITERATOR,
     PY_SIZED_DOUBLE_ENDED_ITERATOR, REGISTER_METHODS_ATTRIBUTE, SELF_GENERIC_ATTRIBUTE,
+    SERIALIZED_METHODS_PATH,
 };
 
 #[proc_macro_attribute]
@@ -173,8 +174,7 @@ pub fn add_trait_methods(attr: TokenStream, token_stream: TokenStream) -> TokenS
         }
     };
 
-    // TODO: path
-    let file = match std::fs::File::open("py-combinator/target/iterator_methods.json") {
+    let file = match std::fs::File::open(SERIALIZED_METHODS_PATH) {
         Ok(f) => f,
         Err(fs_e) => {
             let e = format!("Couldn't open serialized methods file ({fs_e})",);

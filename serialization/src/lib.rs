@@ -18,7 +18,7 @@ pub const SELF_FUNC_ATTRIBUTE: &str = "method_self_arg";
 pub const RETURN_LITERAL_ATTRIBUTE: &str = "return_literal";
 pub const STRIPS_TRAITS_ATTRIBUTE: &str = "strips_traits";
 pub const EXCLUDE_ATTRIBUTE: &str = "exclude";
-pub const SERIALIZED_METHODS_PATH: &str = "target/iterator_methods.json";
+pub const SERIALIZED_METHODS_PATH: &str = "py-combinator/target/iterator_methods.json";
 
 pub const PY_BASE_ITERATOR: &str = "PyBaseIterator";
 pub const PY_DOUBLE_ENDED_ITERATOR: &str = "PyDoubleEndedIterator";
