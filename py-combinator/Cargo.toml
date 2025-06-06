@@ -10,7 +10,7 @@ crate-type = ["cdylib"]
 [dependencies]
 macros = { path = "../macros" }
 itertools = "0.14.0"
-pyo3 = "0.25.0"
+pyo3 = { version = "0.25.0", features = ["extension-module"] }
 
 [build-dependencies]
 serialization = { path = "../serialization/" }
