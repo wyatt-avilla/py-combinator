@@ -18,6 +18,10 @@
       flake-utils,
       ...
     }:
+    let
+      projectName = "py-combinator";
+      projectVersion = "0.1.0";
+    in
     flake-utils.lib.eachDefaultSystem (
       system:
       let
@@ -28,24 +32,57 @@
 
         python = pkgs.python312;
 
-        pythonEnv = python.withPackages (
-          ps: with ps; [
-            pip
-            setuptools
-            wheel
-            pytest
-          ]
-        );
+        pythonPackage = pkgs.python312Packages.buildPythonPackage {
+          name = projectName;
+          version = projectVersion;
+          pyproject = true;
+          src = self;
 
+          nativeBuildInputs = [
+            pkgs.rustPlatform.cargoSetupHook
+            pkgs.rustPlatform.maturinBuildHook
+            rustToolchain
+            pkgs.maturin
+          ];
+
+          buildInputs = [ python ];
+
+          cargoDeps = pkgs.rustPlatform.importCargoLock { lockFile = ./Cargo.lock; };
+
+          buildAndTestSubdir = "py-combinator";
+        };
+
+        pythonEnv = python.withPackages (ps: [ pythonPackage ] ++ (with ps; [ ipython ]));
       in
       {
+        packages = {
+          inherit pythonPackage;
+          inherit pythonEnv;
+        };
+
+        lib = { inherit pythonPackage; };
+
+        apps = {
+          default = {
+            type = "app";
+            program = "${pythonEnv}/bin/ipython";
+          };
+        };
+
         devShells.default = pkgs.mkShell {
           buildInputs = [
+            (python.withPackages (
+              ps: with ps; [
+                pip
+                setuptools
+                wheel
+                pytest
+              ]
+            ))
             rustToolchain
             pkgs.cargo-watch
             pkgs.cargo-expand
             pkgs.rust-analyzer
-            pythonEnv
             pkgs.maturin
             pkgs.ruff
             pkgs.mypy
@@ -53,29 +90,6 @@
 
           shellHook = ''
             export PYTHONPATH="$(pwd)/python:$PYTHONPATH"
-          '';
-        };
-
-        packages.default = pkgs.stdenv.mkDerivation {
-          pname = "py-combinator";
-          version = "0.1.0";
-          src = self;
-
-          nativeBuildInputs = [
-            rustToolchain
-            pythonEnv
-            pkgs.maturin
-          ];
-
-          buildPhase = ''
-            cd $src
-            maturin build --release
-          '';
-
-          installPhase = ''
-            mkdir -p $out/lib/${python.libPrefix}/site-packages
-            cp target/wheels/*.whl $out/
-            ${python}/bin/pip install --target=$out/lib/${python.libPrefix}/site-packages $out/*.whl
           '';
         };
       }
