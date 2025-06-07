@@ -59,8 +59,6 @@
           inherit pythonEnv;
         };
 
-        lib = { inherit pythonPackage; };
-
         apps = {
           default = {
             type = "app";
