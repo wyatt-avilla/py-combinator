@@ -56,7 +56,7 @@
       in
       {
         packages = {
-          inherit pythonPackage;
+          default = pythonPackage;
           inherit pythonEnv;
         };
 
