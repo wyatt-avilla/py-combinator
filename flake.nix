@@ -38,18 +38,17 @@
           pyproject = true;
           src = self;
 
+          cargoDeps = pkgs.rustPlatform.importCargoLock { lockFile = ./Cargo.lock; };
           nativeBuildInputs = [
             pkgs.rustPlatform.cargoSetupHook
             pkgs.rustPlatform.maturinBuildHook
             rustToolchain
             pkgs.maturin
           ];
-
           buildInputs = [ python ];
-
-          cargoDeps = pkgs.rustPlatform.importCargoLock { lockFile = ./Cargo.lock; };
-
           buildAndTestSubdir = "py-combinator";
+
+          pythonImportsCheck = [ "py_combinator" ];
         };
 
         pythonEnv = python.withPackages (ps: [ pythonPackage ] ++ (with ps; [ ipython ]));
