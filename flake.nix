@@ -49,6 +49,10 @@
           buildAndTestSubdir = "py-combinator";
 
           pythonImportsCheck = [ "py_combinator" ];
+          nativeCheckInputs = [ pkgs.python312Packages.pytestCheckHook ];
+          preCheck = ''
+            rm -rf ./py-combinator/python/py_combinator/
+          '';
         };
 
         pythonEnv = python.withPackages (ps: [ pythonPackage ] ++ (with ps; [ ipython ]));
