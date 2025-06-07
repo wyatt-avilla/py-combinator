@@ -14,15 +14,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: nixbuild/nix-quick-install-action@v30
-      - name: Make venv
-        run: |
-          python -m venv .venv
-          source .venv/bin/activate
       - name: Build
         run: |
-          cd py-combinator
-          nix shell nixpkgs#maturin -c maturin develop
-      - name: Pytest
-        run: |
-          cd py-combinator
-          nix shell nixpkgs#python312Packages.pytest -c pytest
+          nix build -L
