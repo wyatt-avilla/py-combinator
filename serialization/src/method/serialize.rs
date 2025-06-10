@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use itertools::Itertools;
 use quote::ToTokens;
-use syn::{ImplItemFn, ItemImpl};
+use syn::{ImplItemFn, ItemImpl, Meta};
 
 use crate::{
     AttributeArg, AttributeArgsList, ImplBlock, ImplBlockParseError, Method,
@@ -29,6 +29,34 @@ impl Method {
         impl_block: &ItemImpl,
         fn_context: &ImplItemFn,
     ) -> Result<Method, ImplBlockParseError> {
+        let comments = fn_context
+            .attrs
+            .iter()
+            .filter_map(|a| {
+                if let Meta::NameValue(kv) = a.meta.clone() {
+                    Some(kv)
+                } else {
+                    None
+                }
+            })
+            .filter(|kv| {
+                if let Some(x) = kv.path.segments.first() {
+                    x.ident == "doc"
+                } else {
+                    false
+                }
+            })
+            .map(|kv| {
+                kv.value
+                    .to_token_stream()
+                    .to_string()
+                    .strip_prefix("\"")
+                    .and_then(|s| s.strip_suffix("\""))
+                    .map(std::string::ToString::to_string)
+            })
+            .next()
+            .flatten();
+
         let name = fn_context.sig.ident.to_string();
         let args = fn_context
             .sig
@@ -89,7 +117,7 @@ impl Method {
         let strips = strips_map.get(&name).unwrap_or(&vec![]).clone();
 
         Ok(Method {
-            comments: None,
+            comments,
             name,
             args,
             return_type,
