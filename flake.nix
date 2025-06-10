@@ -70,28 +70,46 @@
           };
         };
 
-        devShells.default = pkgs.mkShell {
-          buildInputs = [
-            (python.withPackages (
-              ps: with ps; [
-                pip
-                setuptools
-                wheel
-                pytest
-              ]
-            ))
-            rustToolchain
-            pkgs.cargo-watch
-            pkgs.cargo-expand
-            pkgs.rust-analyzer
-            pkgs.maturin
-            pkgs.ruff
-            pkgs.mypy
-          ];
+        devShells = {
+          default = pkgs.mkShell {
+            buildInputs = [
+              (python.withPackages (
+                ps: with ps; [
+                  pip
+                  setuptools
+                  wheel
+                  pytest
+                ]
+              ))
+              rustToolchain
+              pkgs.cargo-watch
+              pkgs.cargo-expand
+              pkgs.rust-analyzer
+              pkgs.maturin
+              pkgs.ruff
+              pkgs.mypy
+            ];
 
-          shellHook = ''
-            export PYTHONPATH="$(pwd)/python:$PYTHONPATH"
-          '';
+            shellHook = ''
+              export PYTHONPATH="$(pwd)/python:$PYTHONPATH"
+            '';
+          };
+
+          python = pkgs.mkShell {
+            buildInputs = [
+              (python.withPackages (
+                ps: with ps; [
+                  pip
+                  setuptools
+                  wheel
+                  pytest
+                  pythonPackage
+                ]
+              ))
+              pkgs.ruff
+              pkgs.mypy
+            ];
+          };
         };
       }
     );
