@@ -184,20 +184,30 @@ impl Method {
 
         let return_type = return_tokens_from(self, impl_block)?;
 
+        let doc_comment = match self.comments.clone() {
+            Some(c) => {
+                quote! { #[doc = #c] }
+            }
+            None => quote! {},
+        };
+
         let impl_item_fn: ImplItemFn = if self.literal_return {
             syn::parse_quote! {
+                #doc_comment
                 pub fn #self_name(&mut self #typed_args) -> #return_type {
                     #qualified_trait_name :: #self_name (self.#self_function() #call_args)
                 }
             }
         } else if return_type.is_empty() {
             syn::parse_quote! {
+                #doc_comment
                 pub fn #self_name(&mut self #typed_args) {
                     ::std::boxed::Box::new ( #qualified_trait_name :: #self_name (self.#self_function() #call_args) )
                 }
             }
         } else {
             syn::parse_quote! {
+                #doc_comment
                 pub fn #self_name(&mut self #typed_args) -> #return_type {
                     #return_type ::new( ::std::boxed::Box::new ( #qualified_trait_name :: #self_name (self.#self_function() #call_args) ) )
                 }
