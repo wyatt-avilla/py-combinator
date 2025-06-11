@@ -32,6 +32,11 @@ impl crate::sized_double_ended_iterator::PySizedDoubleEndedIterator {
 )]
 #[pymethods]
 impl PySizedDoubleEndedIterator {
+    #[doc = "Consumes the first `n` elements of the iterator.
+             
+             Examples:
+                 iter # [4, 9, 16]
+                 iter.take(2) # [4, 9]"]
     pub fn take(&mut self, n: usize) -> Self {
         Self::new(Box::new(
             self.iter.by_ref().take(n).collect::<Vec<_>>().into_iter(),
