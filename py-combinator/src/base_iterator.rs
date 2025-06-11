@@ -20,6 +20,7 @@ impl crate::base_iterator::PyBaseIterator {
         std::mem::replace(&mut self.iter, Box::new(std::iter::empty()))
     }
 
+    #[doc = "Converts the iterator to a list"]
     #[macros::return_literal]
     pub fn to_list<S>(iter: S) -> pyo3::PyResult<pyo3::Py<pyo3::types::PyList>>
     where
@@ -31,6 +32,11 @@ impl crate::base_iterator::PyBaseIterator {
 
     #[allow(clippy::needless_pass_by_value)] // for f
     #[macros::return_literal]
+    #[doc = "Folds every element into an accumulator by repeatedly applying `f`.
+             
+             Examples:
+                 iter # [2, 4, 6]
+                 iter.fold(1, lambda a, x: a * x) # 48"]
     pub fn fold<S>(
         mut iter: S,
         init: pyo3::Py<pyo3::types::PyAny>,
@@ -45,6 +51,11 @@ impl crate::base_iterator::PyBaseIterator {
     }
 
     #[allow(clippy::type_complexity)]
+    #[doc = "Creates a new iterator by applying `f` to each element.
+             
+             Examples:
+                 iter # [1, 2, 3]
+                 iter.map(lambda x: x + 1) # [2, 3, 4]"]
     pub fn map<S>(
         iter: S,
         f: pyo3::Py<pyo3::types::PyFunction>,
@@ -60,6 +71,11 @@ impl crate::base_iterator::PyBaseIterator {
         iter.map(move |x| pyo3::Python::with_gil(|py| x.and_then(|x| f.call1(py, (x.bind(py),)))))
     }
 
+    #[doc = "Creates a new iterator that yields elements for which `f` returns `true`.
+             
+             Examples:
+                 iter # [1, 2, 3]
+                 iter.filter(lambda x: x % 2 == 0) # [2]"]
     #[macros::strips_traits(PyExactSizeIterator)]
     pub fn filter<S>(
         iter: S,
@@ -85,6 +101,13 @@ impl crate::base_iterator::PyBaseIterator {
         })
     }
 
+    #[doc = "The iterator returned yields pairs `(i, val)`, where `i` is the
+             current index of iteration and `val` is the value returned by the
+             iterator.
+             
+             Examples:
+                 iter # [4, 9, 16]
+                 iter.enumerate() # [(0, 4), (1, 9), (2, 16)]"]
     #[allow(clippy::type_complexity)]
     pub fn enumerate<S>(
         iter: S,
@@ -106,6 +129,11 @@ impl crate::base_iterator::PyBaseIterator {
 #[macros::add_trait_methods(PyBaseIterator)]
 #[pyo3::pymethods]
 impl PyBaseIterator {
+    #[doc = "Consumes the first `n` elements of the iterator.
+             
+             Examples:
+                 iter # [4, 9, 16]
+                 iter.take(2) # [4, 9]"]
     pub fn take(&mut self, n: usize) -> Self {
         Self::new(Box::new(
             self.iter.by_ref().take(n).collect::<Vec<_>>().into_iter(),
