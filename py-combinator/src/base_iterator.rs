@@ -88,15 +88,12 @@ impl crate::base_iterator::PyBaseIterator {
 
         iter.filter(move |x| {
             pyo3::Python::with_gil(|py| {
-                let p = x
-                    .as_ref()
+                x.as_ref()
                     .map(|x| f.call1(py, (x.bind(py),)))
                     .expect(bad_predicate)
                     .map(|x| x.is_truthy(py))
                     .and_then(|x| x)
-                    .expect(bad_predicate);
-
-                p
+                    .expect(bad_predicate)
             })
         })
     }
