@@ -81,6 +81,7 @@ jobs:
             pip3 install -U pip pytest
           run: |
             set -e
+            rm -rf py-combinator/python/py_combinator
             pip3 install py_combinator --find-links dist --force-reinstall
             pytest
 
