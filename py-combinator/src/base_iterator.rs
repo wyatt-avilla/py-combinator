@@ -71,7 +71,7 @@ impl crate::base_iterator::PyBaseIterator {
         iter.map(move |x| pyo3::Python::with_gil(|py| x.and_then(|x| f.call1(py, (x.bind(py),)))))
     }
 
-    #[doc = "Creates a new iterator that yields elements for which `f` return `true`.
+    #[doc = "Creates a new iterator that yields elements for which `f` returns `true`.
              
              Examples:
                  iter # [1, 2, 3]
