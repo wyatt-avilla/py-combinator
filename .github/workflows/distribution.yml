@@ -78,6 +78,9 @@ jobs:
           install: |
             apk add py3-virtualenv
           run: |
+            ls -la dist
+            python3 --version
+
             set -e
             python3 -m virtualenv .venv
             source .venv/bin/activate
