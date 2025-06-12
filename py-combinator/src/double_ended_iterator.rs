@@ -20,6 +20,12 @@ impl crate::double_ended_iterator::PyDoubleEndedIterator {
         std::mem::replace(&mut self.iter, Box::new(std::iter::empty()))
     }
 
+    #[doc = "Creates a new iterator that traverses the elements
+             of the initial iterator in reverse order.
+             
+             Examples:
+                 iter # [1, 2, 3]
+                 iter.rev() # [3, 2, 1]"]
     pub fn rev<S>(iter: S) -> std::iter::Rev<S>
     where
         S: DoubleEndedIterator<Item = PyResult<Py<PyAny>>>,
