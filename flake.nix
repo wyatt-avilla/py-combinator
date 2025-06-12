@@ -20,7 +20,7 @@
     }:
     let
       projectName = "py-combinator";
-      projectVersion = "0.1.0";
+      projectVersion = "0.1.1";
     in
     flake-utils.lib.eachDefaultSystem (
       system:
