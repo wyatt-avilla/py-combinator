@@ -73,7 +73,7 @@ jobs:
         uses: uraimo/run-on-arch-action@v2
         with:
           arch: ${{ matrix.platform.target }}
-          distro: ubuntu_latest
+          distro: ubuntu24.04
           githubToken: ${{ github.token }}
           install: |
             apt-get update
