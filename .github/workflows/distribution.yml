@@ -73,7 +73,7 @@ jobs:
         uses: uraimo/run-on-arch-action@v3
         with:
           arch: ${{ matrix.platform.target }}
-          distro: alpine_latest
+          distro: ubuntu24.04
           githubToken: ${{ github.token }}
           install: |
             apk add py3-virtualenv
