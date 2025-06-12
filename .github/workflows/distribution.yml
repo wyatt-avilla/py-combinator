@@ -76,7 +76,8 @@ jobs:
           distro: ubuntu24.04
           githubToken: ${{ github.token }}
           install: |
-            apk add py3-virtualenv
+            apt-get update
+            apt-get install -y --no-install-recommends python3 python3-pip
           run: |
             ls -l dist
 
