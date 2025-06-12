@@ -57,7 +57,7 @@ jobs:
         run: |
           ls -l dist
           for file in dist/*.whl; do
-            new_name=$(echo "$file" | sed -E "s/\.manylinux2014_[^\.]+/\./")
+            new_name=$(echo "$file" | sed -E "s/\.manylinux2014_[^\.]+//")
             sudo mv "$file" "$new_name"
           done
           ls -l dist
