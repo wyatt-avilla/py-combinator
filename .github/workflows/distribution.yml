@@ -82,7 +82,7 @@ jobs:
             ls -l dist
 
             set -e
-            python3 -m virtualenv .venv
+            python3 -m venv .venv
             source .venv/bin/activate
             rm -rf py-combinator/python/py_combinator
             pip install pytest
