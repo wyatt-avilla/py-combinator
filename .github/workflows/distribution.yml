@@ -56,12 +56,11 @@ jobs:
           matrix.platform.target != 'ppc64' }}
         run: |
           ls -l dist
-          ARCH=${{ matrix.platform.target }}
-
           for file in dist/*.whl; do
-            new_name=$(echo "$file" | sed -E "s/\.manylinux2014_${ARCH}//")
-            mv "$file" "$new_name"
+            new_name=$(echo "$file" | sed -E "s/\.manylinux2014_[^\.]+/\./")
+            sudo mv "$file" "$new_name"
           done
+          ls -l dist
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
