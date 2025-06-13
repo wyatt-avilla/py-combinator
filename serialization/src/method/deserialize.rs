@@ -91,7 +91,6 @@ fn call_args_from(arg_names: &[Ident]) -> TokenStream2 {
 
 fn return_tokens_from(
     method: &Method,
-    impl_block: &ImplBlock,
     injectee_name: &str,
 ) -> Result<TokenStream2, MethodDeserializeError> {
     let return_type = if method.literal_return {
@@ -109,11 +108,6 @@ fn return_tokens_from(
                 .map_err(|e| MethodDeserializeError::ArgTypeParseError(e.to_string()))?,
         )
     } else {
-        let impl_name = impl_block
-            .name
-            .last()
-            .ok_or(MethodDeserializeError::EmptyField)?;
-
         let trait_map: HashMap<_, Vec<_>> = [
             (PY_BASE_ITERATOR, vec![]),
             (
@@ -184,7 +178,7 @@ impl Method {
         let self_function: TokenStream2 = parse_str(&impl_block.self_function.clone())
             .map_err(|e| MethodDeserializeError::TokenStreamParseError(e.to_string()))?;
 
-        let return_type = return_tokens_from(self, impl_block, injectee_name)?;
+        let return_type = return_tokens_from(self, injectee_name)?;
 
         let doc_comment = match self.comments.clone() {
             Some(c) => {
