@@ -1,7 +1,7 @@
 from copy import deepcopy
 from itertools import islice
 
-from py_combinator import SizedDoubleEndedIterator, iterator_from
+from py_combinator import DoubleEndedIterator, SizedDoubleEndedIterator, iterator_from
 
 # ruff: noqa: E731 S101
 
@@ -127,10 +127,11 @@ def test_filter() -> None:
 
     f = lambda x: x % 2 == 0
 
-    lib_filter = it.filter(f).to_list()
+    lib_filter = it.filter(f)
+    assert isinstance(lib_filter, DoubleEndedIterator)
     native_filter = list(filter(f, nums))
 
-    assert lib_filter == native_filter
+    assert lib_filter.to_list() == list(native_filter)
 
 
 def test_filter_consecutive() -> None:
@@ -165,10 +166,11 @@ def test_take() -> None:
     assert isinstance(lib_it, SizedDoubleEndedIterator)
     native_it = iter(deepcopy(nums))
 
-    lib_taken = lib_it.take(1).to_list()
-    native_taken = list(islice(native_it, 1))
+    lib_taken = lib_it.take(1)
+    assert isinstance(lib_it, SizedDoubleEndedIterator)
+    native_taken = islice(native_it, 1)
 
-    assert lib_taken == native_taken
+    assert lib_taken.to_list() == list(native_taken)
     assert lib_it.to_list() == list(native_it)
 
 
