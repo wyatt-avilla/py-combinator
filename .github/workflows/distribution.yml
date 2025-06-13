@@ -66,7 +66,7 @@ jobs:
           python3 -m venv .venv
           source .venv/bin/activate
           pip install pytest
-          pip install py_combinator --find-links dist --force-reinstall
+          pip install py_combinator --no-index --find-links dist --force-reinstall
           pytest
       - name: pytest
         if:
@@ -88,7 +88,7 @@ jobs:
             python3 -m venv .venv
             source .venv/bin/activate
             pip install pytest
-            pip install py_combinator --find-links dist --force-reinstall
+            pip install py_combinator --no-index --find-links dist --force-reinstall
             pytest
 
   musllinux:
@@ -156,7 +156,7 @@ jobs:
             python3 -m virtualenv .venv
             source .venv/bin/activate
             pip install pytest
-            pip install py_combinator --find-links dist --force-reinstall
+            pip install py_combinator --no-index --find-links dist --force-reinstall
             pytest
 
   windows:
@@ -197,7 +197,7 @@ jobs:
           python3 -m venv .venv
           source .venv/Scripts/activate
           pip install pytest
-          pip install py_combinator --find-links dist --force-reinstall
+          pip install py_combinator --no-index --find-links dist --force-reinstall
           pytest
 
   macos:
@@ -235,7 +235,7 @@ jobs:
           python3 -m venv .venv
           source .venv/bin/activate
           pip install pytest
-          pip install py_combinator --find-links dist --force-reinstall
+          pip install py_combinator --no-index --find-links dist --force-reinstall
           pytest
 
   sdist:
