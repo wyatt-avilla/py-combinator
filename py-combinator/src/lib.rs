@@ -37,6 +37,9 @@ fn iterator_from(iterable: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
 #[allow(clippy::unnecessary_wraps)]
 fn _py_combinator(m: &Bound<'_, PyModule>) -> PyResult<()> {
     let _ = m.add_class::<sized_double_ended_iterator::PySizedDoubleEndedIterator>();
+    let _ = m.add_class::<exact_size_iterator::PyExactSizeIterator>();
+    let _ = m.add_class::<double_ended_iterator::PyDoubleEndedIterator>();
+    let _ = m.add_class::<base_iterator::PyBaseIterator>();
     let _ = m.add_function(wrap_pyfunction!(iterator_from, m)?);
     Ok(())
 }
