@@ -60,9 +60,11 @@ jobs:
         shell: bash
         run: |
           set -e
+          rm -rf py-combinator/python/py_combinator
+          rm -rf .venv
+
           python3 -m venv .venv
           source .venv/bin/activate
-          rm -rf py-combinator/python/py_combinator
           pip install pytest
           pip install py_combinator --find-links dist --force-reinstall
           pytest
@@ -80,9 +82,11 @@ jobs:
             apt-get install -y --no-install-recommends python3 python3-pip python3-venv
           run: |
             set -e
+            rm -rf py-combinator/python/py_combinator
+            rm -rf .venv
+
             python3 -m venv .venv
             source .venv/bin/activate
-            rm -rf py-combinator/python/py_combinator
             pip install pytest
             pip install py_combinator --find-links dist --force-reinstall
             pytest
@@ -126,10 +130,12 @@ jobs:
           options: -v ${{ github.workspace }}:/io -w /io
           run: |
             set -e
+            rm -rf py-combinator/python/py_combinator
+            rm -rf .venv
+
             apk add py3-pip py3-virtualenv
             python3 -m virtualenv .venv
             source .venv/bin/activate
-            rm -rf py-combinator/python/py_combinator
             pip install pytest
             pip install py_combinator --no-index --find-links dist --force-reinstall
             pytest
@@ -144,9 +150,11 @@ jobs:
             apk add py3-virtualenv
           run: |
             set -e
+            rm -rf py-combinator/python/py_combinator
+            rm -rf .venv
+
             python3 -m virtualenv .venv
             source .venv/bin/activate
-            rm -rf py-combinator/python/py_combinator
             pip install pytest
             pip install py_combinator --find-links dist --force-reinstall
             pytest
@@ -183,9 +191,11 @@ jobs:
         shell: bash
         run: |
           set -e
+          rm -rf py-combinator/python/py_combinator
+          rm -rf .venv
+
           python3 -m venv .venv
           source .venv/Scripts/activate
-          rm -rf py-combinator/python/py_combinator
           pip install pytest
           pip install py_combinator --find-links dist --force-reinstall
           pytest
@@ -219,9 +229,11 @@ jobs:
       - name: pytest
         run: |
           set -e
+          rm -rf py-combinator/python/py_combinator
+          rm -rf .venv
+
           python3 -m venv .venv
           source .venv/bin/activate
-          rm -rf py-combinator/python/py_combinator
           pip install pytest
           pip install py_combinator --find-links dist --force-reinstall
           pytest
