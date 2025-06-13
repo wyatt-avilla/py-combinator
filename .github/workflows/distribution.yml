@@ -63,8 +63,8 @@ jobs:
           python3 -m venv .venv
           source .venv/bin/activate
           rm -rf py-combinator/python/py_combinator
-          pip install py_combinator --find-links dist --force-reinstall
           pip install pytest
+          pip install py_combinator --find-links dist --force-reinstall
           pytest
       - name: pytest
         if:
@@ -130,8 +130,8 @@ jobs:
             python3 -m virtualenv .venv
             source .venv/bin/activate
             rm -rf py-combinator/python/py_combinator
-            pip install py_combinator --no-index --find-links dist --force-reinstall
             pip install pytest
+            pip install py_combinator --no-index --find-links dist --force-reinstall
             pytest
       - name: pytest
         if: ${{ !startsWith(matrix.platform.target, 'x86') }}
@@ -186,8 +186,8 @@ jobs:
           python3 -m venv .venv
           source .venv/Scripts/activate
           rm -rf py-combinator/python/py_combinator
-          pip install py_combinator --find-links dist --force-reinstall
           pip install pytest
+          pip install py_combinator --find-links dist --force-reinstall
           pytest
 
   macos:
@@ -222,8 +222,8 @@ jobs:
           python3 -m venv .venv
           source .venv/bin/activate
           rm -rf py-combinator/python/py_combinator
-          pip install py_combinator --find-links dist --force-reinstall
           pip install pytest
+          pip install py_combinator --find-links dist --force-reinstall
           pytest
 
   sdist:
