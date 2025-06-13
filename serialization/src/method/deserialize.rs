@@ -92,6 +92,7 @@ fn call_args_from(arg_names: &[Ident]) -> TokenStream2 {
 fn return_tokens_from(
     method: &Method,
     impl_block: &ImplBlock,
+    injectee_name: &str,
 ) -> Result<TokenStream2, MethodDeserializeError> {
     let return_type = if method.literal_return {
         method
@@ -136,7 +137,7 @@ fn return_tokens_from(
         .collect();
 
         let available_traits = trait_map
-            .get(impl_name.as_str())
+            .get(injectee_name)
             .ok_or(MethodDeserializeError::InvalidIteratorName)?;
 
         let remaining_traits = available_traits
@@ -168,6 +169,7 @@ impl Method {
     pub fn into_impl_item(
         &self,
         impl_block: &ImplBlock,
+        injectee_name: &str,
     ) -> Result<ImplItemFn, MethodDeserializeError> {
         let qualified_trait_name = parse_str::<syn::Path>(impl_block.nice_name().as_ref())
             .map_err(|e| MethodDeserializeError::NameParseError(e.to_string()))?;
@@ -182,7 +184,7 @@ impl Method {
         let self_function: TokenStream2 = parse_str(&impl_block.self_function.clone())
             .map_err(|e| MethodDeserializeError::TokenStreamParseError(e.to_string()))?;
 
-        let return_type = return_tokens_from(self, impl_block)?;
+        let return_type = return_tokens_from(self, impl_block, injectee_name)?;
 
         let doc_comment = match self.comments.clone() {
             Some(c) => {

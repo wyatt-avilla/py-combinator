@@ -242,7 +242,7 @@ pub fn add_trait_methods(attr: TokenStream, token_stream: TokenStream) -> TokenS
                 continue;
             }
 
-            let mut impl_item = match method.into_impl_item(impl_block) {
+            let mut impl_item = match method.into_impl_item(impl_block, &input_name) {
                 Ok(ii) => ii,
                 Err(e) => {
                     let e = format!("Couldn't parse method ({e})",);
