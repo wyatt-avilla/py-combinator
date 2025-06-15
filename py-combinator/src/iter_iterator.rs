@@ -17,6 +17,12 @@ impl Iterator for PyIterIterator {
     type Item = PyResult<Py<PyAny>>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        Python::with_gil(|py| Some(self.iter.call_method0(py, "next")))
+        Python::with_gil(|py| {
+            self.iter
+                .clone_ref(py)
+                .into_bound(py)
+                .next()
+                .map(|x| x.map(pyo3::Bound::unbind))
+        })
     }
 }
