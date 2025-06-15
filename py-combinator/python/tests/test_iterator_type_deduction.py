@@ -3,6 +3,8 @@ from py_combinator import (
     iterator_from,
 )
 
+# ruff: noqa: E731 S101
+
 
 class TestIteratorTypeDeduction:
     def test_list_iter_type_deduction(self) -> None:
