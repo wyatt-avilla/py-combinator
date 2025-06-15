@@ -1,7 +1,12 @@
 from copy import deepcopy
 from itertools import islice
 
-from py_combinator import DoubleEndedIterator, SizedDoubleEndedIterator, iterator_from
+from py_combinator import (
+    BaseIterator,
+    DoubleEndedIterator,
+    SizedDoubleEndedIterator,
+    iterator_from,
+)
 
 # ruff: noqa: E731 S101
 
@@ -199,3 +204,15 @@ def test_map_take() -> None:
     native_res = list(islice(map(f, native_it), 3))
 
     assert lib_res == native_res
+
+
+def test_list_iter_type_deduction() -> None:
+    nums = [1, 2, 3, 4, 5]
+    lib_it = iterator_from(iter(nums))
+    assert isinstance(lib_it, BaseIterator)
+
+
+def test_tuple_iter_type_deduction() -> None:
+    nums = (1, 2, 3, 4, 5)
+    lib_it = iterator_from(iter(nums))
+    assert isinstance(lib_it, BaseIterator)

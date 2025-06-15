@@ -3,6 +3,7 @@
 mod base_iterator;
 mod double_ended_iterator;
 mod exact_size_iterator;
+mod iter_iterator;
 mod list_iterator;
 mod sized_double_ended_iterator;
 
@@ -25,10 +26,17 @@ fn iterator_from(iterable: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
             sized_double_ended_iterator::PySizedDoubleEndedIterator::new(Box::new(list_iter))
                 .into_py_any(py)
         } else {
-            Err(PyTypeError::new_err(format!(
-                "Cannot construct iterator from type {}",
-                iterable.get_type().name()?
-            )))
+            match iterable.try_iter() {
+                Ok(it) => base_iterator::PyBaseIterator::new(Box::new(
+                    iter_iterator::PyIterIterator::new(&it),
+                ))
+                .into_py_any(py),
+                Err(e) => Err(PyTypeError::new_err(format!(
+                    "Cannot construct iterator from type {} ({})",
+                    e,
+                    iterable.get_type().name()?,
+                ))),
+            }
         }
     })
 }
