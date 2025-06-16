@@ -1,5 +1,5 @@
 {
-  description = "Python library with Rust combinators";
+  description = "Python library of statically typed iterator combinators implemented in Rust";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/release-25.05";
