@@ -3,7 +3,7 @@ from py_combinator import (
     iterator_from,
 )
 
-# ruff: noqa: E731 S101
+# ruff: noqa: S101
 
 
 class TestIteratorTypeDeduction:
