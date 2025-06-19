@@ -2,7 +2,7 @@ use pyo3::prelude::*;
 
 type PyDoubleEndedIteratorT =
     Box<dyn DoubleEndedIterator<Item = PyResult<Py<PyAny>>> + Send + Sync>;
-#[pyclass]
+#[pyo3::pyclass(generic)]
 pub struct PyDoubleEndedIterator {
     iter: PyDoubleEndedIteratorT,
 }

@@ -1,7 +1,7 @@
 use pyo3::prelude::*;
 
 type PyExactSizeIteratorT = Box<dyn ExactSizeIterator<Item = PyResult<Py<PyAny>>> + Send + Sync>;
-#[pyclass]
+#[pyo3::pyclass(generic)]
 pub struct PyExactSizeIterator {
     iter: PyExactSizeIteratorT,
 }

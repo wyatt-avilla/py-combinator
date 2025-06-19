@@ -1,4 +1,4 @@
-#[pyo3::pyclass]
+#[pyo3::pyclass(generic)]
 pub struct PyBaseIterator {
     iter: Box<dyn Iterator<Item = pyo3::PyResult<pyo3::Py<pyo3::types::PyAny>>> + Send + Sync>,
 }

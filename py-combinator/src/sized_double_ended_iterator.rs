@@ -5,7 +5,7 @@ impl<T> SizedDoubleEndedIterator for T where T: Iterator + DoubleEndedIterator +
 
 type PySizedDoubleEndedIteratorT =
     Box<dyn SizedDoubleEndedIterator<Item = PyResult<Py<PyAny>>> + Send + Sync>;
-#[pyclass]
+#[pyo3::pyclass(generic)]
 pub struct PySizedDoubleEndedIterator {
     iter: PySizedDoubleEndedIteratorT,
 }
