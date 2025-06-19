@@ -13,6 +13,39 @@ provides statically typed
 [iterator combinators](https://learning-rust.github.io/docs/combinators/) for
 chainable functional operations on iterables.
 
+## Example
+
+The following function takes an iterator `it` and returns a new iterator that
+produces the squares of the first 10 elements at even indexes from `it`, in
+reverse order.
+
+```py
+def fn(it: SizedDoubleEndedIterator[int]) -> SizedDoubleEndedIterator[int]:
+        return (it
+                .enumerate()
+                .filter(lambda p: p[0] % 2 == 0)
+                .map(lambda p: p[1] ** 2)
+                .take(10)
+                .rev())
+```
+
+In native Python, it would look like this:
+
+```py
+def fn(it: Iterable[int]) -> Iterable[int]:
+    return reversed(
+        list(
+            islice(
+                map(
+                    lambda p: p[1] ** 2,
+                    filter(lambda p: p[0] % 2 == 0, enumerate(it)),
+                ),
+                10,
+            )
+        )
+    )
+```
+
 ## Installation
 
 ### Via Python Package Vendors
